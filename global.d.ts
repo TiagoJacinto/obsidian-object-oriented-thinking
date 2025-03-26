@@ -13,6 +13,12 @@ declare global {
 }
 
 declare module 'obsidian' {
+	interface App {
+		dom: {
+			appContainerEl: HTMLElement;
+		};
+	}
+
 	interface TFile {
 		deleted: boolean;
 	}

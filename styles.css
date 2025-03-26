@@ -6,3 +6,11 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.time-search {
+	width: calc(100% - 20px);
+}
+
+.setting-item-control.setting-error input {
+	border-color: #990000;
+}
