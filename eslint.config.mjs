@@ -10,6 +10,9 @@ export default config(
 			withProjectService: true,
 		},
 		plugins: {
+			formatting: {
+				perfectionist: false,
+			},
 			languages: {
 				typescript: true,
 			},
@@ -31,6 +34,12 @@ export default config(
 			'@typescript-eslint/no-empty-function': 'off',
 			'sonarjs/constructor-for-side-effects': 'off',
 			'sonarjs/no-invalid-await': 'off',
+			'sonarjs/no-nested-functions': [
+				'warn',
+				{
+					threshold: 5,
+				},
+			],
 		},
 	},
 );

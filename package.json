@@ -12,7 +12,7 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
-		"@tiagojacinto/eslint-config": "0.5.8",
+		"@tiagojacinto/eslint-config": "0.5.10",
 		"@tiagojacinto/prettier-config": "0.1.1",
 		"@tiagojacinto/typescript-config": "0.1.0",
 		"@types/node": "^16.18.126",
@@ -27,6 +27,8 @@
 		"typescript-eslint": "8.26.1"
 	},
 	"dependencies": {
-		"@popperjs/core": "^2.11.8"
-	}
+		"@popperjs/core": "^2.11.8",
+		"date-fns": "4.1.0"
+	},
+	"packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }
