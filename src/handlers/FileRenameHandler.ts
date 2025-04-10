@@ -35,8 +35,8 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 	updateObjectTagTrail(file: TFile, oldPath: string, newPath: string) {
 		const fileData = this.plugin.filesCacheService.getCachedFile(file.path);
 
-		const newTag = fileData.objectTag.replace(oldPath, newPath);
-		this.plugin.filesCacheService.setFileCachedObjectTag(file.path, newTag);
+		const newTag = fileData.hierarchy.replace(oldPath, newPath);
+		this.plugin.filesCacheService.setFileHierarchy(file.path, newTag);
 
 		const dependentFiles = fileData.extendedBy.map((filePath) =>
 			this.plugin.app.vault.getFileByPath(filePath),

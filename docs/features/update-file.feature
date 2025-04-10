@@ -3,17 +3,17 @@ Feature: Update file
 Scenario: File doesn't extend another file
 Given a file named "File" that doesn't extend another file
 When I update the file
-Then I should see the object tag as "File"
+Then I should see the object hierarchy as "File"
 
 Scenario: File has empty extends property
 Given a file named "File" with empty extends property
 When I update the file
-Then I should see the object tag as "File"
+Then I should see the object hierarchy as "File"
 
 Scenario: File extends another file
 Given the "SubFile" extends the "SuperFile"
 When I update the file named "SubFile"
-Then I should see the object tag as "SuperFile/SubFile"
+Then I should see the object hierarchy as "SuperFile/SubFile"
 
 Scenario: File extends itself
 Given a file that extends itself
@@ -28,8 +28,8 @@ Then I should see an error notifying me that the file should not extend an ignor
 And the extends property should be empty
 
 Scenario: File references itself indirectly
-Given the files and corresponding object tags:
- | File Name   | Object Tag Trail       |
+Given the files and corresponding object hierarchies:
+ | File Name   | Object Hierarchy       |
  | Animal      | Animal                 |
  | Cat         | Animal/Cat             |
  | PersianCat  | Animal/Cat/PersianCat  |
@@ -37,16 +37,16 @@ When I extend "Animal" with "PersianCat"
 Then I should see an error notifying me that the file should not extend from "PersianCat" because it references itself
 And the extends property should be empty
 
-Scenario: Updating a parent file should update descendant object tag trails
-Given the files and corresponding object tags:
- | File Name | Object Tag Trail |
- | File4     | File4            |
- | File3     | File4/File3      |
- | File2     | File2            |
- | File1     | File2/File1      |
+Scenario: Updating a parent file should update descendant object hierarchy
+Given the files and corresponding object hierarchies:
+ | File Name | Object Hierarchy  |
+ | File4     | File4       |
+ | File3     | File4/File3 |
+ | File2     | File2       |
+ | File1     | File2/File1 |
 When I extend "File2" with "File3"
-Then the object tag trails should be:
- | File Name | Object Tag Trail |
+Then the object hierarchy should be:
+ | File Name | Object Hierarchy |
  | File4     | File4            |
  | File3     | File4/File3            |
  | File2     | File4/File3/File2            |
@@ -59,7 +59,7 @@ Given "File1" is extending "File2"
 When I remove the link between them
 Then I should see that "File1" is no longer extending "File2"
 And "File2" is no longer extended by "File1"
-And "File1" object tag is "File1"
+And "File1" object hierarchy is "File1"
 
 Scenario: Save mode is instant
 Given I have set the save mode setting to instant

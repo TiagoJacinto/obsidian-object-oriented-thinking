@@ -3,7 +3,6 @@ import { type TFile, Notice, Plugin } from 'obsidian';
 import { type PluginSettings, DEFAULT_SETTINGS, OOTSettingsTab } from './Settings';
 import { FilesCacheService } from './FilesCache';
 import { type Frontmatter } from './types';
-import { toId } from './utils';
 import * as time from 'date-fns';
 import { FileCreationHandler } from './handlers/FileCreationHandler';
 import { FileRenameHandler } from './handlers/FileRenameHandler';
@@ -40,11 +39,16 @@ export default class OOTPlugin extends Plugin {
 			);
 			if (!file) throw new Error('File not found');
 
-			const tag = this.filesCacheService.getCachedFile(file.path).objectTag;
+			const tag =
+				this.settings.objectTagPrefix +
+				'/' +
+				this.filesCacheService.getCachedFile(file.path).hierarchy;
 
-			await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) => {
-				this.upsertObjectTagProperty(frontmatter, tag);
-			});
+			await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) =>
+				this.upsertObjectTagProperty(frontmatter, tag),
+			);
+
+			this.filesCacheService.tagFile(file);
 
 			return tag;
 		};
@@ -67,14 +71,12 @@ export default class OOTPlugin extends Plugin {
 		);
 	}
 
-	async updateObjectFileTag(file: TFile) {
-		const id = toId(file.path);
-		this.filesCacheService.setFileId(file, id);
+	async updateObjectFileHierarchy(file: TFile) {
+		const fileData = this.filesCacheService.getCachedFile(file.path);
 
 		await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) => {
 			const removeExtension = () => {
-				const newTag = this.settings.objectTagPrefix + id;
-				this.filesCacheService.setFileCachedObjectTag(file.path, newTag);
+				this.filesCacheService.setFileHierarchy(file.path, fileData.id);
 
 				const parentPath = fileData.extends;
 				if (parentPath) {
@@ -84,8 +86,6 @@ export default class OOTPlugin extends Plugin {
 			};
 
 			const parentFrontmatterLink = frontmatter[this.settings.superPropertyName];
-
-			const fileData = this.filesCacheService.getCachedFile(file.path);
 
 			if (!parentFrontmatterLink) {
 				removeExtension();
@@ -134,7 +134,13 @@ export default class OOTPlugin extends Plugin {
 
 			const parentFileData = this.filesCacheService.getCachedFile(parentFile.path);
 
-			const hasCyclicHierarchy = parentFileData.objectTag.includes(fileData.id);
+			if (!parentFileData.hierarchy) {
+				await this.updateObjectFileHierarchy(parentFile);
+			}
+
+			const parentObjectHierarchy = parentFileData.hierarchy;
+
+			const hasCyclicHierarchy = parentObjectHierarchy.includes(fileData.id);
 			if (hasCyclicHierarchy) {
 				new Notice('Update Failed: There is a cyclic hierarchy');
 				frontmatter[this.settings.superPropertyName] = null;
@@ -145,22 +151,18 @@ export default class OOTPlugin extends Plugin {
 			const extendsHasNotChanged = fileData.extends === parentFile.path;
 			if (extendsHasNotChanged) return;
 
-			this.prependObjectTagTrail(file, parentFileData.objectTag);
+			this.prependObjectTagTrail(file, parentFileData.hierarchy);
 
 			this.filesCacheService.setFileExtends(file.path, parentFile);
 			this.filesCacheService.addFileExtendedBy(parentFile, file);
 		});
 	}
 
-	private checkForCycle(): boolean {
-		return false;
-	}
-
 	private prependObjectTagTrail(file: TFile, parentObjectTag: string) {
 		const fileData = this.filesCacheService.getCachedFile(file.path);
 
-		const oldTag = fileData.objectTag;
-		this.filesCacheService.setFileCachedObjectTag(
+		const oldTag = fileData.hierarchy;
+		this.filesCacheService.setFileHierarchy(
 			file.path,
 			parentObjectTag + '/' + oldTag.replace(this.settings.objectTagPrefix, ''),
 		);

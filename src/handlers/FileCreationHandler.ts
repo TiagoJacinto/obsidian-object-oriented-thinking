@@ -7,7 +7,7 @@ export class FileCreationHandler extends Handler {
 		const updatedAt = this.plugin.filesCacheService.getCachedFile(file.path).updatedAt;
 
 		if (!updatedAt || this.fileChanged(file.stat.mtime, updatedAt)) {
-			await this.plugin.updateObjectFileTag(file);
+			await this.plugin.updateObjectFileHierarchy(file);
 			this.plugin.filesCacheService.setFileUpdatedAt(file);
 		}
 	}

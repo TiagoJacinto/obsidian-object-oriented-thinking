@@ -38,6 +38,15 @@ export class FilesCacheService extends Component {
 		}
 	}
 
+	tagFile({ path }: TFile) {
+		const fileData = this.getCachedFile(path);
+
+		this.plugin.settings.files[path] = {
+			...fileData,
+			tagged: true,
+		};
+	}
+
 	getCachedFile(path: string) {
 		const fileData = this.plugin.settings.files[path];
 		const id = toId(path);
@@ -46,7 +55,8 @@ export class FilesCacheService extends Component {
 			id: fileData?.id ?? id,
 			extends: fileData?.extends,
 			extendedBy: fileData?.extendedBy ?? [],
-			objectTag: fileData?.objectTag ?? this.plugin.settings.objectTagPrefix + id,
+			hierarchy: fileData?.hierarchy ?? id,
+			tagged: false,
 			updatedAt: fileData?.updatedAt,
 		};
 
@@ -100,11 +110,11 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	setFileCachedObjectTag(path: string, objectTag: string) {
+	setFileHierarchy(path: string, hierarchy: string) {
 		const fileData = this.getCachedFile(path);
 		this.plugin.settings.files[path] = {
 			...fileData,
-			objectTag,
+			hierarchy,
 		};
 	}
 

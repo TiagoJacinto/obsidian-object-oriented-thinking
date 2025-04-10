@@ -15,20 +15,20 @@ Scenario: Deleting the Super File
 Given the "SubFile" extends the "SuperFile"
 When I delete the file named "SuperFile"
 Then I should no longer see the file named "SuperFile"
-And I should see the object tag of "SubFile" as "SubFile"
+And I should see the object hierarchy of "SubFile" as "SubFile"
 And "SubFile" should no longer extend "SuperFile"
 
-Scenario: Deleting a file inside the trail should break the object tag trails
-Given the files and corresponding object tags:
- | File Name | Object Tag Trail |
+Scenario: Deleting a file inside the hierarchy should break the object hierarchy
+Given the files and corresponding object hierarchies:
+ | File Name | Object Hierarchy |
  | File1     | File1            |
  | File2     | File1/File2         |
  | File3     | File1/File2/File3      |
  | File4     | File1/File2/File3/File4   |
  | File5     | File1/File2/File3/File4/File5  |
 When I delete the file named "File3"
-Then the object tag trails should be:
- | File Name | Object Tag Trail |
+Then the object hierarchy should be:
+ | File Name | Object Hierarchy |
  | File1     | File1            |
  | File2     | File1/File2      |
  | File4     | File4            |

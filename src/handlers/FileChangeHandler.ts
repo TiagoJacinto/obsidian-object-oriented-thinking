@@ -7,7 +7,7 @@ export class FileChangeHandler extends Handler {
 		const fileData = this.plugin.filesCacheService.getCachedFile(file.path);
 
 		if (this.plugin.settings.saveMode === 'instant') {
-			await this.plugin.updateObjectFileTag(file);
+			await this.plugin.updateObjectFileHierarchy(file);
 			this.plugin.filesCacheService.setFileUpdatedAt(file);
 		}
 
@@ -16,7 +16,7 @@ export class FileChangeHandler extends Handler {
 				fileData.updatedAt === undefined ||
 				this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt)
 			) {
-				await this.plugin.updateObjectFileTag(file);
+				await this.plugin.updateObjectFileHierarchy(file);
 				this.plugin.filesCacheService.setFileUpdatedAt(file);
 			}
 		}

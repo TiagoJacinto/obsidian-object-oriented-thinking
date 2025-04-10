@@ -4,7 +4,8 @@ import * as time from 'date-fns';
 import type OOTPlugin from './main';
 
 import { FolderSuggest } from './suggesters/FolderSuggester';
-import { map } from 'ramda';
+import { type Frontmatter } from './types';
+import { filter } from 'ramda';
 
 const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(value) === index;
 
@@ -12,7 +13,8 @@ export type CachedFile = {
 	id: string;
 	extends?: string;
 	extendedBy: string[];
-	objectTag: string;
+	hierarchy: string;
+	tagged: boolean;
 	updatedAt?: string;
 };
 
@@ -206,10 +208,19 @@ export class OOTSettingsTab extends PluginSettingTab {
 						return;
 					}
 
-					this.plugin.settings.files = map(
-						(f) => ({ ...f, objectTag: f.objectTag?.replace(previousPrefix, newPrefix) }),
-						this.plugin.settings.files,
-					);
+					const taggedFiles = filter((f) => Boolean(f.tagged), this.plugin.settings.files);
+					for (const filePath of Object.keys(taggedFiles)) {
+						const file = this.app.vault.getFileByPath(filePath);
+						if (!file) continue;
+
+						await this.app.fileManager.processFrontMatter(file, (frontmatter: Frontmatter) => {
+							if (!frontmatter.tags) return;
+
+							frontmatter.tags = frontmatter.tags.map((tag) =>
+								tag.startsWith(previousPrefix) ? newPrefix + tag.split(previousPrefix)[1] : tag,
+							);
+						});
+					}
 
 					setting.controlEl.removeClass('setting-error');
 					this.plugin.settings.objectTagPrefix = newPrefix;

@@ -27,9 +27,9 @@ export class FileDeletionHandler extends Handler {
 		for (const dependentFile of dependentFiles) {
 			const newTag = this.plugin.filesCacheService
 				.getCachedFile(dependentFile.path)
-				.objectTag.split(splitSection + '/')[1]!;
+				.hierarchy.split(splitSection + '/')[1]!;
 
-			this.plugin.filesCacheService.setFileCachedObjectTag(dependentFile.path, newTag);
+			this.plugin.filesCacheService.setFileHierarchy(dependentFile.path, newTag);
 
 			await this.updateObjectTagRightTrail(
 				this.plugin.filesCacheService
