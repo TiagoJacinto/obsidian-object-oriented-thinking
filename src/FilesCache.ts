@@ -56,7 +56,7 @@ export class FilesCacheService extends Component {
 			extends: fileData?.extends,
 			extendedBy: fileData?.extendedBy ?? [],
 			hierarchy: fileData?.hierarchy ?? id,
-			tagged: false,
+			tagged: fileData?.tagged ?? false,
 			updatedAt: fileData?.updatedAt,
 		};
 
