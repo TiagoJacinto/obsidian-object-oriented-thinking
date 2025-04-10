@@ -1,4 +1,5 @@
 import { type TFile } from 'obsidian';
+import '@total-typescript/ts-reset';
 
 declare global {
 	declare const ExcalidrawAutomate:

@@ -4,43 +4,41 @@ import * as time from 'date-fns';
 import type OOTPlugin from './main';
 
 import { FolderSuggest } from './suggesters/FolderSuggester';
-import { type Frontmatter } from './types';
+import { map } from 'ramda';
 
 const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(value) === index;
 
-export type OOTPluginSettings = {
-	dateFormat: string;
-	files: Record<
-		string,
-		{
-			id: string;
+export type CachedFile = {
+	id: string;
+	extends?: string;
+	extendedBy: string[];
+	objectTag: string;
+	updatedAt?: string;
+};
 
-			extendedBy: string[];
-			objectTag: string;
-			updatedAt?: string;
-		}
-	>;
-	headerNames: {
-		id: string;
-	};
-	hideIdProperty: boolean;
+export type FilesCache = Record<string, CachedFile>;
+
+type StoredCachedFile = Partial<CachedFile>;
+
+export type PluginSettings = {
+	dateFormat: string;
 	hideObjectTag: boolean;
 	hideObjectTagPrefix: boolean;
-	ignoredFolders?: string[];
+	ignoredFolders: string[];
 	minMinutesBetweenSaves: number;
 	objectTagPrefix: string;
 	superPropertyName: string;
+	saveMode: 'instant' | 'fixed';
+	files: Record<string, StoredCachedFile>;
 };
 
-export const DEFAULT_SETTINGS: OOTPluginSettings = {
+export const DEFAULT_SETTINGS: PluginSettings = {
 	dateFormat: "yyyy-MM-dd'T'HH:mm",
+	ignoredFolders: [],
 	files: {},
-	headerNames: {
-		id: 'id',
-	},
-	hideIdProperty: false,
 	hideObjectTag: false,
 	hideObjectTagPrefix: false,
+	saveMode: 'instant',
 	minMinutesBetweenSaves: 1,
 	objectTagPrefix: 'Object/',
 	superPropertyName: 'extends',
@@ -48,9 +46,7 @@ export const DEFAULT_SETTINGS: OOTPluginSettings = {
 
 type DateFormatArgs = {
 	name: string;
-
 	description: string;
-
 	getValue: () => string;
 	setValue: (newValue: string) => void;
 };
@@ -82,17 +78,43 @@ export class OOTSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		this.addExcludedFoldersSetting();
-		this.addTimeBetweenUpdates();
-		this.addDateFormat();
+		this.addSaveModeToggle();
+		if (this.plugin.settings.saveMode === 'fixed') {
+			this.addTimeBetweenUpdates();
+			this.addDateFormat();
+		}
 
 		this.addSuperObjectPropertyName();
 
 		this.addObjectTagPrefix();
-		this.addToggleForHidingObjectTag();
-		this.addToggleForHidingObjectTagPrefix();
+		this.addHideObjectTagToggle();
+		this.addHideObjectTagPrefixToggle();
+	}
 
-		this.addFrontMatterId();
-		this.addToggleForHidingIdProperty();
+	addExcludedFoldersSetting() {
+		this.doSearchAndRemoveList({
+			name: 'Folder to exclude of all updates',
+
+			currentList: this.plugin.settings.ignoredFolders,
+			description:
+				'Any file updated in this folder will not trigger an updated and created update.',
+
+			setValue: async (newValue) => {
+				this.plugin.settings.ignoredFolders = newValue;
+			},
+		});
+	}
+
+	addSaveModeToggle() {
+		new Setting(this.containerEl)
+			.setName('Fixed time between updates')
+			.addToggle(async (toggle) => {
+				toggle.setValue(this.plugin.settings.saveMode === 'fixed').onChange(async (value) => {
+					this.plugin.settings.saveMode = value ? 'fixed' : 'instant';
+					await this.saveSettings();
+					this.display();
+				});
+			});
 	}
 
 	addTimeBetweenUpdates() {
@@ -161,21 +183,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	addFrontMatterId() {
-		new Setting(this.containerEl)
-			.setName('Front matter id name')
-			.setDesc('The key in the front matter yaml for the id.')
-			.addText((text) =>
-				text
-					.setPlaceholder('id')
-					.setValue(this.plugin.settings.headerNames.id)
-					.onChange(async (value) => {
-						this.plugin.settings.headerNames.id = value;
-						await this.saveSettings();
-					}),
-			);
-	}
-
 	addObjectTagPrefix() {
 		const setting = new Setting(this.containerEl)
 			.setName('Object tag prefix')
@@ -199,18 +206,10 @@ export class OOTSettingsTab extends PluginSettingTab {
 						return;
 					}
 
-					for (const filePath of Object.keys(this.plugin.settings.files)) {
-						const file = this.app.vault.getFileByPath(filePath);
-						if (!file) continue;
-
-						await this.app.fileManager.processFrontMatter(file, (frontmatter: Frontmatter) => {
-							if (!frontmatter.tags) return;
-
-							frontmatter.tags = frontmatter.tags.map((tag) =>
-								tag.startsWith(previousPrefix) ? newPrefix + tag.split(previousPrefix)[1] : tag,
-							);
-						});
-					}
+					this.plugin.settings.files = map(
+						(f) => ({ ...f, objectTag: f.objectTag?.replace(previousPrefix, newPrefix) }),
+						this.plugin.settings.files,
+					);
 
 					setting.controlEl.removeClass('setting-error');
 					this.plugin.settings.objectTagPrefix = newPrefix;
@@ -234,48 +233,25 @@ export class OOTSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	addToggleForHidingObjectTag() {
+	addHideObjectTagToggle() {
 		new Setting(this.containerEl).setName('Hide object tag').addToggle(async (toggle) => {
-			toggle.setValue(this.plugin.settings.hideObjectTag);
-			await this.saveSettings();
+			toggle.setValue(this.plugin.settings.hideObjectTag).onChange(async (value) => {
+				this.plugin.settings.hideObjectTag = value;
+				await this.saveSettings();
+			});
 		});
 	}
 
-	addToggleForHidingObjectTagPrefix() {
+	addHideObjectTagPrefixToggle() {
 		new Setting(this.containerEl).setName('Hide object tag prefix').addToggle(async (toggle) => {
-			toggle.setValue(this.plugin.settings.hideObjectTagPrefix);
-			await this.saveSettings();
+			toggle.setValue(this.plugin.settings.hideObjectTagPrefix).onChange(async (value) => {
+				this.plugin.settings.hideObjectTagPrefix = value;
+				await this.saveSettings();
+			});
 		});
 	}
 
-	addToggleForHidingIdProperty() {
-		new Setting(this.containerEl).setName('Hide id property').addToggle(async (toggle) => {
-			toggle.setValue(this.plugin.settings.hideIdProperty);
-			await this.saveSettings();
-		});
-	}
-
-	addExcludedFoldersSetting() {
-		this.doSearchAndRemoveList({
-			name: 'Folder to exclude of all updates',
-
-			currentList: this.plugin.getIgnoredFolders(),
-			description:
-				'Any file updated in this folder will not trigger an updated and created update.',
-
-			setValue: async (newValue) => {
-				this.plugin.settings.ignoredFolders = newValue;
-			},
-		});
-	}
-
-	doSearchAndRemoveList({
-		name,
-
-		currentList,
-		description,
-		setValue,
-	}: SearchAndRemoveArgs) {
+	doSearchAndRemoveList({ name, currentList, description, setValue }: SearchAndRemoveArgs) {
 		let searchInput: SearchComponent | undefined;
 		new Setting(this.containerEl)
 			.setName(name)
