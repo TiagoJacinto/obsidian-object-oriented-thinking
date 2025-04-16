@@ -4,11 +4,19 @@ import * as time from 'date-fns';
 
 export class FileCreationHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
-		const updatedAt = this.plugin.filesCacheService.getCachedFile(file.path).updatedAt;
+		if (!this.plugin.filesCacheService.isFileDataInitialized(file)) {
+			await this.plugin.filesCacheService.initializeFileData(file);
+			await this.plugin.saveSettings();
+			return;
+		}
 
-		if (!updatedAt || this.fileChanged(file.stat.mtime, updatedAt)) {
+		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
+		const updatedAt = fileData.updatedAt;
+
+		if (updatedAt === undefined || this.fileChanged(file.stat.mtime, updatedAt)) {
 			await this.plugin.updateObjectFileHierarchy(file);
 			this.plugin.filesCacheService.setFileUpdatedAt(file);
+			await this.plugin.saveSettings();
 		}
 	}
 

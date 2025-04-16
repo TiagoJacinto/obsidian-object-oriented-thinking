@@ -1,6 +1,11 @@
 import { type TFile, Notice, Plugin } from 'obsidian';
 
-import { type PluginSettings, DEFAULT_SETTINGS, OOTSettingsTab } from './Settings';
+import {
+	type PluginSettings,
+	DEFAULT_SETTINGS,
+	OOTSettingsTab,
+	PluginSettingsSchema,
+} from './Settings';
 import { FilesCacheService } from './FilesCache';
 import { type Frontmatter } from './types';
 import * as time from 'date-fns';
@@ -8,6 +13,7 @@ import { FileCreationHandler } from './handlers/FileCreationHandler';
 import { FileRenameHandler } from './handlers/FileRenameHandler';
 import { FileChangeHandler } from './handlers/FileChangeHandler';
 import { FileDeletionHandler } from './handlers/FileDeletionHandler';
+import { dissocPath } from 'ramda';
 
 const isExcalidrawFile = (file: TFile) => ExcalidrawAutomate?.isExcalidrawFile(file) ?? false;
 
@@ -20,12 +26,10 @@ export default class OOTPlugin extends Plugin {
 
 		this.filesCacheService = this.addChild(new FilesCacheService(this));
 
-		const fileCreationHandler = new FileCreationHandler(this);
-
 		if (this.app.workspace.layoutReady) await this.filesCacheService.initialize();
 		else this.app.workspace.onLayoutReady(() => this.filesCacheService.initialize());
 
-		this.setupEventHandlers(fileCreationHandler);
+		this.setupEventHandlers();
 
 		// For hiding?
 		// this.registerMarkdownPostProcessor
@@ -42,7 +46,7 @@ export default class OOTPlugin extends Plugin {
 			const tag =
 				this.settings.objectTagPrefix +
 				'/' +
-				this.filesCacheService.getCachedFile(file.path).hierarchy;
+				this.filesCacheService.getInitializedFileData(file.path).hierarchy;
 
 			await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) =>
 				this.upsertObjectTagProperty(frontmatter, tag),
@@ -54,9 +58,9 @@ export default class OOTPlugin extends Plugin {
 		};
 	}
 
-	setupEventHandlers(fileCreationHandler: FileCreationHandler) {
+	setupEventHandlers() {
 		this.registerEvent(
-			this.app.vault.on('create', (file) => fileCreationHandler.execute({ file })),
+			this.app.vault.on('create', (file) => new FileCreationHandler(this).execute({ file })),
 		);
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) =>
@@ -72,7 +76,7 @@ export default class OOTPlugin extends Plugin {
 	}
 
 	async updateObjectFileHierarchy(file: TFile) {
-		const fileData = this.filesCacheService.getCachedFile(file.path);
+		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 
 		await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) => {
 			const removeExtension = () => {
@@ -132,15 +136,9 @@ export default class OOTPlugin extends Plugin {
 				return;
 			}
 
-			const parentFileData = this.filesCacheService.getCachedFile(parentFile.path);
+			const parentFileData = this.filesCacheService.getInitializedFileData(parentFile.path);
 
-			if (!parentFileData.hierarchy) {
-				await this.updateObjectFileHierarchy(parentFile);
-			}
-
-			const parentObjectHierarchy = parentFileData.hierarchy;
-
-			const hasCyclicHierarchy = parentObjectHierarchy.includes(fileData.id);
+			const hasCyclicHierarchy = parentFileData.hierarchy.includes(fileData.id);
 			if (hasCyclicHierarchy) {
 				new Notice('Update Failed: There is a cyclic hierarchy');
 				frontmatter[this.settings.superPropertyName] = null;
@@ -151,21 +149,18 @@ export default class OOTPlugin extends Plugin {
 			const extendsHasNotChanged = fileData.extends === parentFile.path;
 			if (extendsHasNotChanged) return;
 
-			this.prependObjectTagTrail(file, parentFileData.hierarchy);
+			await this.prependObjectTagTrail(file, parentFileData.hierarchy);
 
 			this.filesCacheService.setFileExtends(file.path, parentFile);
 			this.filesCacheService.addFileExtendedBy(parentFile, file);
 		});
 	}
 
-	private prependObjectTagTrail(file: TFile, parentObjectTag: string) {
-		const fileData = this.filesCacheService.getCachedFile(file.path);
+	private async prependObjectTagTrail(file: TFile, parentObjectTag: string) {
+		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 
 		const oldTag = fileData.hierarchy;
-		this.filesCacheService.setFileHierarchy(
-			file.path,
-			parentObjectTag + '/' + oldTag.replace(this.settings.objectTagPrefix, ''),
-		);
+		this.filesCacheService.setFileHierarchy(file.path, parentObjectTag + '/' + oldTag);
 
 		const dependentFiles = fileData.extendedBy.map((filePath) =>
 			this.app.vault.getFileByPath(filePath),
@@ -174,7 +169,7 @@ export default class OOTPlugin extends Plugin {
 		for (const dependentFile of dependentFiles) {
 			if (!dependentFile) continue;
 
-			this.prependObjectTagTrail(dependentFile, parentObjectTag);
+			await this.prependObjectTagTrail(dependentFile, parentObjectTag);
 		}
 	}
 
@@ -245,6 +240,23 @@ export default class OOTPlugin extends Plugin {
 	}
 
 	override async loadData() {
-		return (await super.loadData()) as Promise<PluginSettings>;
+		let data = ((await super.loadData()) as object) ?? {};
+
+		const result = PluginSettingsSchema.partial().safeParse(data);
+		if (result.success) return result.data;
+
+		for (const issue of result.error.issues) {
+			const isFileDataIssue = issue.code === 'invalid_type' && issue.path[0] === 'files';
+
+			if (isFileDataIssue) {
+				// remove file from data so that it can be recreated
+				data = dissocPath(issue.path.slice(0, 2), data);
+			}
+		}
+
+		data = PluginSettingsSchema.partial().parse(data);
+
+		await this.saveData(data);
+		return data;
 	}
 }

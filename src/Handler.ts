@@ -14,7 +14,6 @@ export abstract class Handler<TContext = unknown> {
 
 		try {
 			await this.executeImpl(ctx as TContext & { file: TFile });
-			await this.plugin.saveSettings();
 		} catch (error) {
 			console.error(error);
 

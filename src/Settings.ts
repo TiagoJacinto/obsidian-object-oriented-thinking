@@ -6,33 +6,33 @@ import type OOTPlugin from './main';
 import { FolderSuggest } from './suggesters/FolderSuggester';
 import { type Frontmatter } from './types';
 import { filter } from 'ramda';
+import { z } from 'zod';
 
 const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(value) === index;
 
-export type CachedFile = {
-	id: string;
-	extends?: string;
-	extendedBy: string[];
-	hierarchy: string;
-	tagged: boolean;
-	updatedAt?: string;
-};
+export const PluginSettingsSchema = z.object({
+	dateFormat: z.string(),
+	hideObjectTag: z.boolean(),
+	hideObjectTagPrefix: z.boolean(),
+	ignoredFolders: z.array(z.string()),
+	minMinutesBetweenSaves: z.number(),
+	objectTagPrefix: z.string(),
+	superPropertyName: z.string(),
+	saveMode: z.enum(['instant', 'fixed']),
+	files: z.record(
+		z.string(),
+		z.object({
+			id: z.string(),
+			extends: z.string().optional(),
+			extendedBy: z.array(z.string()),
+			hierarchy: z.string(),
+			tagged: z.boolean(),
+			updatedAt: z.string().optional(),
+		}),
+	),
+});
 
-export type FilesCache = Record<string, CachedFile>;
-
-type StoredCachedFile = Partial<CachedFile>;
-
-export type PluginSettings = {
-	dateFormat: string;
-	hideObjectTag: boolean;
-	hideObjectTagPrefix: boolean;
-	ignoredFolders: string[];
-	minMinutesBetweenSaves: number;
-	objectTagPrefix: string;
-	superPropertyName: string;
-	saveMode: 'instant' | 'fixed';
-	files: Record<string, StoredCachedFile>;
-};
+export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	dateFormat: "yyyy-MM-dd'T'HH:mm",

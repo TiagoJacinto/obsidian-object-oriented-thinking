@@ -6,7 +6,7 @@ type Context = { file: TFile; oldPath: string };
 
 export class FileRenameHandler extends Handler<{ oldPath: string }> {
 	protected async executeImpl({ file, oldPath }: Context) {
-		const oldFileData = this.plugin.filesCacheService.getCachedFile(oldPath);
+		const oldFileData = this.plugin.filesCacheService.getInitializedFileData(oldPath);
 
 		this.plugin.settings.files[file.path] = oldFileData;
 		delete this.plugin.settings.files[oldPath];
@@ -15,9 +15,9 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 		const newId = toId(file.path);
 		this.plugin.filesCacheService.setFileId(file, newId);
 
-		this.updateObjectTagTrail(file, oldId, newId);
+		this.updateHierarchyPathSection(file, oldId, newId);
 
-		const fileData = this.plugin.filesCacheService.getCachedFile(file.path);
+		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
 		const dependentFiles = fileData.extendedBy
 			.map((filePath) => this.plugin.app.vault.getFileByPath(filePath))
@@ -29,11 +29,11 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 		if (parentPath)
 			this.plugin.filesCacheService.updateFileExtendedBy(parentPath, oldPath, file.path);
 
-		this.plugin.filesCacheService.setFileUpdatedAt(file);
+		await this.plugin.saveSettings();
 	}
 
-	updateObjectTagTrail(file: TFile, oldPath: string, newPath: string) {
-		const fileData = this.plugin.filesCacheService.getCachedFile(file.path);
+	updateHierarchyPathSection(file: TFile, oldPath: string, newPath: string) {
+		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
 		const newTag = fileData.hierarchy.replace(oldPath, newPath);
 		this.plugin.filesCacheService.setFileHierarchy(file.path, newTag);
@@ -46,7 +46,7 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 		for (const dependentFile of dependentFiles) {
 			if (!dependentFile) continue;
 
-			this.updateObjectTagTrail(dependentFile, oldPath, newPath);
+			this.updateHierarchyPathSection(dependentFile, oldPath, newPath);
 		}
 	}
 }
