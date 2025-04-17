@@ -8,7 +8,6 @@ import {
 } from './Settings';
 import { FilesCacheService } from './FilesCache';
 import { type Frontmatter } from './types';
-import * as time from 'date-fns';
 import { FileCreationHandler } from './handlers/FileCreationHandler';
 import { FileRenameHandler } from './handlers/FileRenameHandler';
 import { FileChangeHandler } from './handlers/FileChangeHandler';
@@ -219,24 +218,6 @@ export default class OOTPlugin extends Plugin {
 		return this.settings.ignoredFolders.some((ignoredFolderPath) =>
 			file.path.startsWith(ignoredFolderPath),
 		);
-	}
-
-	parseDate(input: string): Date | null;
-	parseDate(input: number): Date;
-	parseDate(input: string | number) {
-		if (typeof input === 'string') {
-			try {
-				const parsedDate = time.parse(input, this.settings.dateFormat, new Date());
-
-				if (isNaN(parsedDate.getTime())) return null;
-
-				return parsedDate;
-			} catch (e) {
-				console.error(e);
-				return null;
-			}
-		}
-		return new Date(input);
 	}
 
 	toExistingFiles(paths: string[]) {

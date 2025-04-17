@@ -1,6 +1,7 @@
 import { type TFile } from 'obsidian';
 import { Handler } from 'src/Handler';
 import * as time from 'date-fns';
+import { parseDate } from 'src/utils';
 
 export class FileCreationHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
@@ -21,9 +22,9 @@ export class FileCreationHandler extends Handler {
 	}
 
 	private fileChanged(mTime: number, updatedAt: string) {
-		const currentMTime = this.plugin.parseDate(mTime);
+		const currentMTime = parseDate(mTime);
 
-		const fileMTime = this.plugin.parseDate(updatedAt);
+		const fileMTime = parseDate(updatedAt);
 		if (!fileMTime) throw new Error('Something wrong happen, skipping');
 
 		return time.isAfter(currentMTime, fileMTime);

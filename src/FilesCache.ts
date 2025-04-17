@@ -1,8 +1,8 @@
 import { type TFile, type TAbstractFile, Component, Notice } from 'obsidian';
-import * as time from 'date-fns';
 import type OOTPlugin from './main';
-import { toId } from './utils';
+import { formatDate, parseDate, toId } from './utils';
 import { type Frontmatter } from './types';
+import * as time from 'date-fns';
 
 export class FilesCacheService extends Component {
 	constructor(private readonly plugin: OOTPlugin) {
@@ -34,7 +34,7 @@ export class FilesCacheService extends Component {
 		const { softExcludedAt } = this.getInitializedFileData(path);
 		if (!softExcludedAt) return false;
 
-		const fileSoftExcludedAt = this.plugin.parseDate(softExcludedAt);
+		const fileSoftExcludedAt = parseDate(softExcludedAt);
 		if (!fileSoftExcludedAt) return false;
 
 		const currentTime = new Date();
@@ -184,7 +184,7 @@ export class FilesCacheService extends Component {
 
 		this.plugin.settings.files[path] = {
 			...fileData,
-			updatedAt: this.formatDate(new Date()),
+			updatedAt: formatDate(new Date()),
 		};
 	}
 
@@ -202,7 +202,7 @@ export class FilesCacheService extends Component {
 
 		this.plugin.settings.files[path] = {
 			...fileData,
-			softExcludedAt: this.formatDate(new Date()),
+			softExcludedAt: formatDate(new Date()),
 		};
 	}
 
@@ -258,9 +258,5 @@ export class FilesCacheService extends Component {
 			...fileData,
 			id,
 		};
-	}
-
-	private formatDate(input: Date) {
-		return time.format(input, this.plugin.settings.dateFormat);
 	}
 }

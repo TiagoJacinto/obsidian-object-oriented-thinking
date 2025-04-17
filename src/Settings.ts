@@ -1,5 +1,4 @@
 import { type App, type SearchComponent, PluginSettingTab, Setting } from 'obsidian';
-import * as time from 'date-fns';
 
 import type OOTPlugin from './main';
 
@@ -11,7 +10,6 @@ import { z } from 'zod';
 const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(value) === index;
 
 export const PluginSettingsSchema = z.object({
-	dateFormat: z.string(),
 	hideObjectTag: z.boolean(),
 	hideObjectTagPrefix: z.boolean(),
 	ignoredFolders: z.array(z.string()),
@@ -37,7 +35,6 @@ export const PluginSettingsSchema = z.object({
 export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-	dateFormat: "yyyy-MM-dd'T'HH:mm",
 	ignoredFolders: [],
 	files: {},
 	hideObjectTag: false,
@@ -47,13 +44,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	minSoftExclusionDays: 14,
 	objectTagPrefix: 'Object/',
 	superPropertyName: 'extends',
-};
-
-type DateFormatArgs = {
-	name: string;
-	description: string;
-	getValue: () => string;
-	setValue: (newValue: string) => void;
 };
 
 type SearchAndRemoveArgs = {
@@ -87,7 +77,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 		this.addSaveModeToggle();
 		if (this.plugin.settings.saveMode === 'fixed') {
 			this.addTimeBetweenUpdates();
-			this.addDateFormat();
 		}
 
 		this.addSuperObjectPropertyName();
@@ -151,56 +140,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 						await this.saveSettings();
 					})
 					.setDynamicTooltip(),
-			);
-	}
-
-	addDateFormat() {
-		this.createDateFormatEditor({
-			name: 'Date format',
-
-			description: 'The date format for read and write',
-
-			getValue: () => this.plugin.settings.dateFormat,
-			setValue: (newValue) => (this.plugin.settings.dateFormat = newValue),
-		});
-	}
-
-	createDateFormatEditor({
-		name,
-
-		description,
-		getValue,
-		setValue,
-	}: DateFormatArgs) {
-		const createDoc = () => {
-			const descr = document.createDocumentFragment();
-			descr.append(
-				description,
-				descr.createEl('br'),
-				'Check ',
-				descr.createEl('a', {
-					href: 'https://date-fns.org/v2.25.0/docs/format',
-					text: 'date-fns documentation',
-				}),
-				descr.createEl('br'),
-				`Currently: ${time.format(new Date(), getValue())}`,
-				descr.createEl('br'),
-				`Obsidian default format for date properties: yyyy-MM-dd'T'HH:mm`,
-			);
-			return descr;
-		};
-		const dformat = new Setting(this.containerEl)
-			.setName(name)
-			.setDesc(createDoc())
-			.addText((text) =>
-				text
-					.setPlaceholder(DEFAULT_SETTINGS.dateFormat)
-					.setValue(getValue())
-					.onChange(async (value) => {
-						setValue(value);
-						dformat.setDesc(createDoc());
-						await this.saveSettings();
-					}),
 			);
 	}
 
