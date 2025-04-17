@@ -11,7 +11,6 @@ const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(
 
 export const PluginSettingsSchema = z.object({
 	hideObjectTag: z.boolean(),
-	hideObjectTagPrefix: z.boolean(),
 	ignoredFolders: z.array(z.string()),
 	minMinutesBetweenSaves: z.number().min(1),
 	minSoftExclusionDays: z.number().min(0),
@@ -38,7 +37,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	ignoredFolders: [],
 	files: {},
 	hideObjectTag: false,
-	hideObjectTagPrefix: false,
 	saveMode: 'instant',
 	minMinutesBetweenSaves: 1,
 	minSoftExclusionDays: 14,
@@ -83,7 +81,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 		this.addObjectTagPrefix();
 		this.addHideObjectTagToggle();
-		this.addHideObjectTagPrefixToggle();
 	}
 
 	addExcludedFoldersSetting() {
@@ -206,15 +203,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 		new Setting(this.containerEl).setName('Hide object tag').addToggle(async (toggle) => {
 			toggle.setValue(this.plugin.settings.hideObjectTag).onChange(async (value) => {
 				this.plugin.settings.hideObjectTag = value;
-				await this.saveSettings();
-			});
-		});
-	}
-
-	addHideObjectTagPrefixToggle() {
-		new Setting(this.containerEl).setName('Hide object tag prefix').addToggle(async (toggle) => {
-			toggle.setValue(this.plugin.settings.hideObjectTagPrefix).onChange(async (value) => {
-				this.plugin.settings.hideObjectTagPrefix = value;
 				await this.saveSettings();
 			});
 		});
