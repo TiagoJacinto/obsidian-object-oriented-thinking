@@ -193,6 +193,24 @@ export class OOTSettingsTab extends PluginSettingTab {
 					.setPlaceholder('extends')
 					.setValue(this.plugin.settings.superPropertyName)
 					.onChange(async (value) => {
+						const previousSuperPropertyName = this.plugin.settings.superPropertyName;
+						const newSuperPropertyName = value;
+
+						if (previousSuperPropertyName === newSuperPropertyName) return;
+
+						const extendingFiles = filter((f) => Boolean(f.extends), this.plugin.settings.files);
+
+						for (const filePath of Object.keys(extendingFiles)) {
+							const file = this.app.vault.getFileByPath(filePath);
+							if (!file) continue;
+
+							await this.app.fileManager.processFrontMatter(file, (frontmatter: Frontmatter) => {
+								const superPropertyValue = frontmatter[previousSuperPropertyName];
+								delete frontmatter[previousSuperPropertyName];
+								frontmatter[newSuperPropertyName] = superPropertyValue;
+							});
+						}
+
 						this.plugin.settings.superPropertyName = value;
 						await this.saveSettings();
 					}),
