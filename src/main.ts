@@ -28,6 +28,29 @@ export default class OOTPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		const observer = new MutationObserver((mutations) => {
+			mutations.forEach((mutation) => {
+				if (
+					mutation.type === 'childList' &&
+					mutation.addedNodes.length > 0 &&
+					mutation.target instanceof HTMLElement
+				) {
+					const objectTagElements = mutation.target
+						.findAll('.metadata-property[data-property-key="tags"] .multi-select-pill')
+						.filter((e) => e.textContent?.startsWith(this.settings.objectTagPrefix));
+
+					objectTagElements.forEach((e) => {
+						if (this.settings.hideObjectTag) e.classList.add('hidden');
+						else e.classList.remove('hidden');
+					});
+				}
+			});
+		});
+
+		const targetNode = this.app.workspace.containerEl;
+		observer.observe(targetNode, { childList: true, subtree: true });
+		this.register(() => observer.disconnect());
+
 		this.fileCreationHandler = new FileCreationHandler(this);
 		this.fileRenameHandler = new FileRenameHandler(this);
 		this.fileChangeHandler = new FileChangeHandler(this);
