@@ -19,9 +19,7 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 
 		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
-		const dependentFiles = fileData.extendedBy
-			.map((filePath) => this.plugin.app.vault.getFileByPath(filePath))
-			.filter(Boolean);
+		const dependentFiles = this.plugin.toExistingFiles(fileData.extendedBy);
 
 		dependentFiles.forEach((f) => this.plugin.filesCacheService.setFileExtends(f.path, file));
 

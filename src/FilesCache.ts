@@ -1,8 +1,6 @@
 import { type TFile, type TAbstractFile, Component, Notice } from 'obsidian';
 import * as time from 'date-fns';
 import type OOTPlugin from './main';
-import { FileCreationHandler } from './handlers/FileCreationHandler';
-import { FileDeletionHandler } from './handlers/FileDeletionHandler';
 import { toId } from './utils';
 import { type Frontmatter } from './types';
 
@@ -13,36 +11,42 @@ export class FilesCacheService extends Component {
 
 	async initialize() {
 		await this.synchronize();
-		await this.plugin.saveSettings();
 	}
 
 	async synchronize() {
-		const existingFiles = this.plugin.app.vault
-			.getMarkdownFiles()
-			.filter((f) => !this.plugin.shouldFileBeIgnored(f));
-
-		const cachedFilesPath = new Set(Object.keys(this.plugin.settings.files));
+		const existingFiles = this.plugin.app.vault.getMarkdownFiles();
 
 		for (const existingFile of existingFiles) {
-			cachedFilesPath.delete(existingFile.path);
+			await this.plugin.fileCreationHandler.execute({ file: existingFile });
 		}
 
-		const deletionHandler = new FileDeletionHandler(this.plugin);
-		for (const deletedFilesPath of cachedFilesPath) {
-			const deletedFile = this.plugin.app.vault.getAbstractFileByPath(deletedFilesPath);
-			if (!deletedFile) continue;
-
-			await deletionHandler.execute({ file: deletedFile });
-		}
-
-		const creationHandler = new FileCreationHandler(this.plugin);
-		for (const existingFile of existingFiles) {
-			await creationHandler.execute({ file: existingFile });
+		for (const filePath of Object.keys(this.plugin.settings.files)) {
+			const file = existingFiles.find((f) => f.path === filePath);
+			if (!file || this.shouldFileDataBeDeleted(file)) {
+				await this.plugin.fileDeletionHandler.impl(filePath);
+			}
 		}
 	}
 
-	isFileDataInitialized(file: TFile) {
-		return !!this.plugin.settings.files[file.path];
+	shouldFileDataBeDeleted({ path }: TFile) {
+		if (!this.fileDataExists(path)) return false;
+
+		const { softExcludedAt } = this.getInitializedFileData(path);
+		if (!softExcludedAt) return false;
+
+		const fileSoftExcludedAt = this.plugin.parseDate(softExcludedAt);
+		if (!fileSoftExcludedAt) return false;
+
+		const currentTime = new Date();
+		const exclusionDate = time.add(fileSoftExcludedAt, {
+			minutes: this.plugin.settings.minSoftExclusionDays * 24 * 60,
+		});
+
+		return time.isAfter(currentTime, exclusionDate);
+	}
+
+	fileDataExists(path: string) {
+		return !!this.plugin.settings.files[path];
 	}
 
 	async initializeFileData(file: TFile) {
@@ -154,7 +158,7 @@ export class FilesCacheService extends Component {
 	}
 
 	private async getOrInitializeFileData(file: TFile) {
-		if (this.isFileDataInitialized(file)) return this.plugin.settings.files[file.path]!;
+		if (this.fileDataExists(file.path)) return this.plugin.settings.files[file.path]!;
 
 		await this.initializeFileData(file);
 		return this.plugin.settings.files[file.path]!;
@@ -181,6 +185,24 @@ export class FilesCacheService extends Component {
 		this.plugin.settings.files[path] = {
 			...fileData,
 			updatedAt: this.formatDate(new Date()),
+		};
+	}
+
+	includeFile(path: string) {
+		const fileData = this.getInitializedFileData(path);
+
+		this.plugin.settings.files[path] = {
+			...fileData,
+			softExcludedAt: undefined,
+		};
+	}
+
+	setFileSoftExcludedAt(path: string) {
+		const fileData = this.getInitializedFileData(path);
+
+		this.plugin.settings.files[path] = {
+			...fileData,
+			softExcludedAt: this.formatDate(new Date()),
 		};
 	}
 

@@ -1,27 +1,29 @@
-import { type TFile } from 'obsidian';
+import { type TAbstractFile, type TFile } from 'obsidian';
 import { Handler } from 'src/Handler';
 
 export class FileDeletionHandler extends Handler {
-	protected async executeImpl({ file }: { file: TFile }) {
-		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
+	async impl(path: string) {
+		const fileData = this.plugin.filesCacheService.getInitializedFileData(path);
 
-		const dependentFiles = fileData.extendedBy
-			.map((filePath) => this.plugin.app.vault.getFileByPath(filePath))
-			.filter(Boolean);
+		const dependentFiles = this.plugin.toExistingFiles(fileData.extendedBy);
 
 		await this.updateObjectTagRightTrail(dependentFiles, fileData.id);
 
 		dependentFiles.forEach((f) => this.plugin.filesCacheService.setFileExtends(f.path, null));
 
 		const parentPath = fileData.extends;
-		if (parentPath) this.plugin.filesCacheService.removeFileExtendedBy(parentPath, file.path);
+		if (parentPath) this.plugin.filesCacheService.removeFileExtendedBy(parentPath, path);
 
-		delete this.plugin.settings.files[file.path];
+		delete this.plugin.settings.files[path];
 
 		await this.plugin.saveSettings();
 	}
 
-	private async updateObjectTagRightTrail(dependentFiles: TFile[], splitSection: string) {
+	protected async executeImpl({ file }: { file: TFile }) {
+		await this.impl(file.path);
+	}
+
+	private async updateObjectTagRightTrail(dependentFiles: TAbstractFile[], splitSection: string) {
 		for (const dependentFile of dependentFiles) {
 			const fileData = this.plugin.filesCacheService.getInitializedFileData(dependentFile.path);
 
@@ -30,9 +32,7 @@ export class FileDeletionHandler extends Handler {
 			this.plugin.filesCacheService.setFileHierarchy(dependentFile.path, newTag);
 
 			await this.updateObjectTagRightTrail(
-				fileData.extendedBy
-					.map((filePath) => this.plugin.app.vault.getFileByPath(filePath))
-					.filter(Boolean),
+				this.plugin.toExistingFiles(fileData.extendedBy),
 				splitSection,
 			);
 		}

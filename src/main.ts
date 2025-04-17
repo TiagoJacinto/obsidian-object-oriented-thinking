@@ -21,8 +21,18 @@ export default class OOTPlugin extends Plugin {
 	settings!: PluginSettings;
 	filesCacheService!: FilesCacheService;
 
+	fileCreationHandler!: FileCreationHandler;
+	fileRenameHandler!: FileRenameHandler;
+	fileChangeHandler!: FileChangeHandler;
+	fileDeletionHandler!: FileDeletionHandler;
+
 	async onload() {
 		await this.loadSettings();
+
+		this.fileCreationHandler = new FileCreationHandler(this);
+		this.fileRenameHandler = new FileRenameHandler(this);
+		this.fileChangeHandler = new FileChangeHandler(this);
+		this.fileDeletionHandler = new FileDeletionHandler(this);
 
 		this.filesCacheService = this.addChild(new FilesCacheService(this));
 
@@ -60,18 +70,18 @@ export default class OOTPlugin extends Plugin {
 
 	setupEventHandlers() {
 		this.registerEvent(
-			this.app.vault.on('create', (file) => new FileCreationHandler(this).execute({ file })),
+			this.app.vault.on('create', (file) => this.fileCreationHandler.execute({ file })),
 		);
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) =>
-				new FileRenameHandler(this).execute({ file, oldPath }),
+				this.fileRenameHandler.execute({ file, oldPath }),
 			),
 		);
 		this.registerEvent(
-			this.app.vault.on('modify', (file) => new FileChangeHandler(this).execute({ file })),
+			this.app.vault.on('modify', (file) => this.fileChangeHandler.execute({ file })),
 		);
 		this.registerEvent(
-			this.app.vault.on('delete', (file) => new FileDeletionHandler(this).execute({ file })),
+			this.app.vault.on('delete', (file) => this.fileDeletionHandler.execute({ file })),
 		);
 	}
 
@@ -227,6 +237,10 @@ export default class OOTPlugin extends Plugin {
 			}
 		}
 		return new Date(input);
+	}
+
+	toExistingFiles(paths: string[]) {
+		return paths.map((p) => this.app.vault.getAbstractFileByPath(p)).filter(Boolean);
 	}
 
 	onunload() {}

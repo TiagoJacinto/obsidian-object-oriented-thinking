@@ -15,7 +15,8 @@ export const PluginSettingsSchema = z.object({
 	hideObjectTag: z.boolean(),
 	hideObjectTagPrefix: z.boolean(),
 	ignoredFolders: z.array(z.string()),
-	minMinutesBetweenSaves: z.number(),
+	minMinutesBetweenSaves: z.number().min(1),
+	minSoftExclusionDays: z.number().min(0),
 	objectTagPrefix: z.string(),
 	superPropertyName: z.string(),
 	saveMode: z.enum(['instant', 'fixed']),
@@ -28,6 +29,7 @@ export const PluginSettingsSchema = z.object({
 			hierarchy: z.string(),
 			tagged: z.boolean(),
 			updatedAt: z.string().optional(),
+			softExcludedAt: z.string().optional(),
 		}),
 	),
 });
@@ -42,6 +44,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	hideObjectTagPrefix: false,
 	saveMode: 'instant',
 	minMinutesBetweenSaves: 1,
+	minSoftExclusionDays: 14,
 	objectTagPrefix: 'Object/',
 	superPropertyName: 'extends',
 };
@@ -80,6 +83,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		this.addExcludedFoldersSetting();
+		this.addTimeForSoftExclusion();
 		this.addSaveModeToggle();
 		if (this.plugin.settings.saveMode === 'fixed') {
 			this.addTimeBetweenUpdates();
@@ -105,6 +109,21 @@ export class OOTSettingsTab extends PluginSettingTab {
 				this.plugin.settings.ignoredFolders = newValue;
 			},
 		});
+	}
+
+	addTimeForSoftExclusion() {
+		new Setting(this.containerEl)
+			.setName('Minimum number of days for excluding files')
+			.addSlider((slider) =>
+				slider
+					.setLimits(0, 120, 1)
+					.setValue(this.plugin.settings.minSoftExclusionDays)
+					.onChange(async (value) => {
+						this.plugin.settings.minSoftExclusionDays = value;
+						await this.saveSettings();
+					})
+					.setDynamicTooltip(),
+			);
 	}
 
 	addSaveModeToggle() {
@@ -284,6 +303,11 @@ export class OOTSettingsTab extends PluginSettingTab {
 					}
 					const newFolder = searchInput.getValue();
 
+					for (const filePath of Object.keys(this.plugin.settings.files)) {
+						if (filePath.startsWith(newFolder))
+							this.plugin.filesCacheService.setFileSoftExcludedAt(filePath);
+					}
+
 					await setValue([...currentList, newFolder].filter(onlyUniqueArray));
 					await this.saveSettings();
 					searchInput.setValue('');
@@ -295,6 +319,20 @@ export class OOTSettingsTab extends PluginSettingTab {
 			new Setting(this.containerEl).setName(ignoredFolder).addButton((button) =>
 				button.setButtonText('Remove').onClick(async () => {
 					await setValue(currentList.filter((value) => value !== ignoredFolder));
+
+					const filesToInclude = this.plugin.app.vault
+						.getMarkdownFiles()
+						.filter((f) => f.path.startsWith(ignoredFolder));
+
+					for (const file of filesToInclude) {
+						if (this.plugin.filesCacheService.fileDataExists(file.path)) {
+							this.plugin.filesCacheService.includeFile(file.path);
+							continue;
+						}
+
+						await this.plugin.fileCreationHandler.execute({ file });
+					}
+
 					await this.saveSettings();
 					this.display();
 				}),

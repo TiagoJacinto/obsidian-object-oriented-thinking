@@ -4,7 +4,7 @@ import * as time from 'date-fns';
 
 export class FileCreationHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
-		if (!this.plugin.filesCacheService.isFileDataInitialized(file)) {
+		if (!this.plugin.filesCacheService.fileDataExists(file.path)) {
 			await this.plugin.filesCacheService.initializeFileData(file);
 			await this.plugin.saveSettings();
 			return;
