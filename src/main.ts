@@ -77,7 +77,6 @@ export default class OOTPlugin extends Plugin {
 
 			const tag =
 				this.settings.objectTagPrefix +
-				'/' +
 				this.filesCacheService.getInitializedFileData(file.path).hierarchy;
 
 			await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) =>
