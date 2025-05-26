@@ -1,6 +1,6 @@
 # Object Oriented Thinking Obsidian Plugin
 
-Link notes hierarchically.
+Add inheritance-like behavior to notes.
 
 What can you do with this plugin:
 
