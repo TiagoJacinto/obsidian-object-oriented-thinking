@@ -1,5 +1,6 @@
 import { type TFile } from 'obsidian';
 import '@total-typescript/ts-reset';
+import { type Link } from 'obsidian-dev-utils/obsidian/Dataview';
 
 declare global {
 	declare const ExcalidrawAutomate:
@@ -9,7 +10,7 @@ declare global {
 		| undefined;
 
 	interface Window {
-		tagOfObjectLink?: (link: `[[${string}]]`) => Promise<string>;
+		tagOfObjectLink: (link: Link | `[[${string}]]`) => Promise<string | undefined>;
 	}
 }
 

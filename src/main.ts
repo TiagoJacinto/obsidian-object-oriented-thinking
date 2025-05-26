@@ -63,30 +63,42 @@ export default class OOTPlugin extends Plugin {
 
 		this.setupEventHandlers();
 
-		// For hiding?
-		// this.registerMarkdownPostProcessor
-
 		this.addSettingTab(new OOTSettingsTab(this.app, this));
 
-		window.tagOfObjectLink = async (link: `[[${string}]]`) => {
-			const file = this.app.metadataCache.getFirstLinkpathDest(
-				link.replaceAll('[[', '').replaceAll(']]', '').split('|')[0]!,
-				'',
-			);
+		window.tagOfObjectLink = async (link) => {
+			const path =
+				typeof link === 'string'
+					? link.replaceAll('[[', '').replaceAll(']]', '').split('|')[0]!
+					: link.path;
+
+			const file = this.app.metadataCache.getFirstLinkpathDest(path, '');
 			if (!file) throw new Error('File not found');
 
-			const tag =
-				this.settings.objectTagPrefix +
-				this.filesCacheService.getInitializedFileData(file.path).hierarchy;
+			if (this.shouldFileBeIgnored(file)) return;
 
-			await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) =>
-				this.upsertObjectTagProperty(frontmatter, tag),
-			);
-
-			this.filesCacheService.tagFile(file);
-
-			return tag;
+			return this.getTagOfObjectHierarchy(file);
 		};
+	}
+
+	private async getTagOfObjectHierarchy(file: TFile) {
+		const fileData = this.filesCacheService.getInitializedFileData(file.path);
+		const tag = this.settings.objectTagPrefix + fileData.hierarchy;
+
+		this.filesCacheService.tagFile(file);
+
+		await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) =>
+			this.upsertObjectTagProperty(frontmatter, tag),
+		);
+
+		const dependentFiles = fileData.extendedBy
+			.map((filePath) => this.app.vault.getFileByPath(filePath))
+			.filter(Boolean);
+
+		for (const dependentFile of dependentFiles) {
+			await this.getTagOfObjectHierarchy(dependentFile);
+		}
+
+		return tag;
 	}
 
 	setupEventHandlers() {
@@ -177,13 +189,14 @@ export default class OOTPlugin extends Plugin {
 				return;
 			}
 
+			this.filesCacheService.addFileExtendedBy(parentFile, file);
+
 			const extendsHasNotChanged = fileData.extends === parentFile.path;
 			if (extendsHasNotChanged) return;
 
 			await this.prependObjectTagTrail(file, parentFileData.hierarchy);
 
 			this.filesCacheService.setFileExtends(file.path, parentFile);
-			this.filesCacheService.addFileExtendedBy(parentFile, file);
 		});
 	}
 
@@ -204,7 +217,7 @@ export default class OOTPlugin extends Plugin {
 		}
 	}
 
-	private upsertObjectTagProperty(frontmatter: Frontmatter, newTag: string) {
+	upsertObjectTagProperty(frontmatter: Frontmatter, newTag: string) {
 		if (!frontmatter.tags) frontmatter.tags = [];
 
 		const objectTags = frontmatter.tags.filter((t) => t.startsWith(this.settings.objectTagPrefix));

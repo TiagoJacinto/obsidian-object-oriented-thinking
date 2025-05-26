@@ -24,6 +24,7 @@
 		"esbuild": "0.17.3",
 		"eslint": "9.22.0",
 		"obsidian": "latest",
+		"obsidian-dev-utils": "^26.11.0",
 		"prettier": "3.5.3",
 		"tslib": "2.4.0",
 		"type-fest": "^4.37.0",
