@@ -11,7 +11,7 @@
 		"name": "Tiago Jacinto",
 		"url": "https://github.com/TiagoJacinto"
 	},
-	"license": "0BSD",
+	"license": "MIT",
 	"devDependencies": {
 		"@tiagojacinto/eslint-config": "0.5.10",
 		"@tiagojacinto/gitignore-config": "0.0.2",
