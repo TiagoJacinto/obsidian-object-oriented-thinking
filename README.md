@@ -1,4 +1,4 @@
-# Object Oriented Thinking Obsidian Plugin
+# Obsidian Object Oriented Thinking
 
 Add inheritance-like behavior to notes.
 
