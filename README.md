@@ -23,7 +23,7 @@ extends: [[ParentNote]]
 To retrieve the object tag for a note, call the following JavaScript function:
 
 ```js
-tagOfObjectLink('[[ChildNote]]'); // returns object tag prefix (default: Object) + note hierarchy (e.g., ParentNote/ChildNote)
+tagOfObjectLink('[[ChildNote]]') // returns object tag prefix (default: Object) + note hierarchy (e.g., ParentNote/ChildNote)
 ```
 
 This will add object tags to the frontmatter of the entire hierarchy:
