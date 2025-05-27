@@ -189,22 +189,27 @@ export default class OOTPlugin extends Plugin {
 				return;
 			}
 
+			const oldParentPath = fileData.extends;
+			if (oldParentPath) {
+				this.filesCacheService.removeFileExtendedBy(oldParentPath, file.path);
+			}
+
 			this.filesCacheService.addFileExtendedBy(parentFile, file);
 
 			const extendsHasNotChanged = fileData.extends === parentFile.path;
 			if (extendsHasNotChanged) return;
 
-			await this.prependObjectTagTrail(file, parentFileData.hierarchy);
+			await this.updateObjectPrefixHierarchy(file, parentFileData.hierarchy);
 
 			this.filesCacheService.setFileExtends(file.path, parentFile);
 		});
 	}
 
-	private async prependObjectTagTrail(file: TFile, parentObjectTag: string) {
+	private async updateObjectPrefixHierarchy(file: TFile, parentHierarchy: string) {
 		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 
-		const oldTag = fileData.hierarchy;
-		this.filesCacheService.setFileHierarchy(file.path, parentObjectTag + '/' + oldTag);
+		const newHierarchy = parentHierarchy + '/' + fileData.id;
+		this.filesCacheService.setFileHierarchy(file.path, newHierarchy);
 
 		const dependentFiles = fileData.extendedBy.map((filePath) =>
 			this.app.vault.getFileByPath(filePath),
@@ -213,7 +218,7 @@ export default class OOTPlugin extends Plugin {
 		for (const dependentFile of dependentFiles) {
 			if (!dependentFile) continue;
 
-			await this.prependObjectTagTrail(dependentFile, parentObjectTag);
+			await this.updateObjectPrefixHierarchy(dependentFile, newHierarchy);
 		}
 	}
 
