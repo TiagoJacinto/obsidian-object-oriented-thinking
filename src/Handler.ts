@@ -13,7 +13,10 @@ export abstract class Handler<TContext = unknown> {
 			return { status: 'ignored' };
 
 		try {
-			await this.executeImpl(ctx as TContext & { file: TFile });
+			await this.executeImpl({
+				...ctx,
+				file: ctx.file,
+			});
 		} catch (error) {
 			console.error(error);
 
