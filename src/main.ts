@@ -209,6 +209,9 @@ export default class OOTPlugin extends Plugin {
 			await this.updateObjectPrefixHierarchy(file, parentFileData.hierarchy);
 
 			this.filesCacheService.setFileExtends(file.path, parentFile);
+
+			this.filesCacheService.setFileUpdatedAt(file);
+			await this.saveSettings();
 		});
 	}
 

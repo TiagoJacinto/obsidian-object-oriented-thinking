@@ -15,8 +15,6 @@ export class FileChangeHandler extends Handler {
 		if (shouldUpdate) {
 			await this.plugin.runWhenLayoutIsReady(async () => {
 				await this.plugin.updateObjectFileHierarchy(file);
-				this.plugin.filesCacheService.setFileUpdatedAt(file);
-				await this.plugin.saveSettings();
 			});
 		}
 	}

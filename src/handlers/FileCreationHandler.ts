@@ -17,8 +17,6 @@ export class FileCreationHandler extends Handler {
 		if (updatedAt === undefined || this.fileChanged(file.stat.mtime, updatedAt)) {
 			await this.plugin.runWhenLayoutIsReady(async () => {
 				await this.plugin.updateObjectFileHierarchy(file);
-				this.plugin.filesCacheService.setFileUpdatedAt(file);
-				await this.plugin.saveSettings();
 			});
 		}
 	}
