@@ -1,4 +1,4 @@
-import { type TFile, Notice, Plugin } from 'obsidian';
+import { Notice, Plugin, type TFile } from 'obsidian';
 
 import {
 	type PluginSettings,
@@ -58,14 +58,15 @@ export default class OOTPlugin extends Plugin {
 
 		this.filesCacheService = this.addChild(new FilesCacheService(this));
 
-		if (this.app.workspace.layoutReady) await this.filesCacheService.initialize();
-		else this.app.workspace.onLayoutReady(() => this.filesCacheService.initialize());
+		await this.runWhenLayoutIsReady(async () => {
+			await this.filesCacheService.initialize();
+		});
 
 		this.setupEventHandlers();
 
 		this.addSettingTab(new OOTSettingsTab(this.app, this));
 
-		window.tagOfObjectLink = async (link) => {
+		window.tagOfObjectLink = async (link, wait = false) => {
 			const path =
 				typeof link === 'string'
 					? link.replaceAll('[[', '').replaceAll(']]', '').split('|')[0]!
@@ -80,15 +81,21 @@ export default class OOTPlugin extends Plugin {
 		};
 	}
 
+	async runWhenLayoutIsReady(cb: () => Promise<void> | void) {
+		if (this.app.workspace.layoutReady) {
+			await cb();
+		} else this.app.workspace.onLayoutReady(cb);
+	}
+
 	private async getTagOfObjectHierarchy(file: TFile) {
 		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 		const tag = this.settings.objectTagPrefix + fileData.hierarchy;
 
-		this.filesCacheService.tagFile(file);
-
-		await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) =>
+		await this.app.fileManager.processFrontMatter(file, (frontmatter: Frontmatter) =>
 			this.upsertObjectTagProperty(frontmatter, tag),
 		);
+
+		this.filesCacheService.tagFile(file);
 
 		const dependentFiles = fileData.extendedBy
 			.map((filePath) => this.app.vault.getFileByPath(filePath))
@@ -222,7 +229,7 @@ export default class OOTPlugin extends Plugin {
 		}
 	}
 
-	upsertObjectTagProperty(frontmatter: Frontmatter, newTag: string) {
+	async upsertObjectTagProperty(frontmatter: Frontmatter, newTag: string) {
 		if (!frontmatter.tags) frontmatter.tags = [];
 
 		const objectTags = frontmatter.tags.filter((t) => t.startsWith(this.settings.objectTagPrefix));
@@ -233,12 +240,12 @@ export default class OOTPlugin extends Plugin {
 
 		const oldTag = objectTags[0];
 
+		if (oldTag === newTag) return;
+
 		if (!oldTag) {
 			frontmatter.tags = [...frontmatter.tags, newTag];
 			return;
 		}
-
-		if (oldTag === newTag) return;
 
 		frontmatter.tags[frontmatter.tags.indexOf(oldTag)] = newTag;
 	}
