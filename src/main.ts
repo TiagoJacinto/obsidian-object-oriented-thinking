@@ -164,7 +164,7 @@ export default class OOTPlugin extends Plugin {
 				return;
 			}
 
-			const parentFile = this.app.metadataCache.getFirstLinkpathDest(parentLinkPath, '');
+			const parentFile = this.app.metadataCache.getFirstLinkpathDest(parentLinkPath, file.path);
 			if (!parentFile) {
 				new Notice('Update Failed: The extended file no longer exists');
 				frontmatter[this.settings.superPropertyName] = null;

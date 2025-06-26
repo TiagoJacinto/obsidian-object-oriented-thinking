@@ -103,7 +103,10 @@ export class FilesCacheService extends Component {
 				return;
 			}
 
-			const parentFile = this.plugin.app.metadataCache.getFirstLinkpathDest(parentLinkPath, '');
+			const parentFile = this.plugin.app.metadataCache.getFirstLinkpathDest(
+				parentLinkPath,
+				file.path,
+			);
 			if (!parentFile) {
 				new Notice('Update Failed: The extended file no longer exists');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
