@@ -10,7 +10,7 @@ declare global {
 		| undefined;
 
 	interface Window {
-		tagOfObjectLink: (link: Link | `[[${string}]]`) => Promise<string | undefined>;
+		tagOfObjectLink?: (link: Link | `[[${string}]]`) => Promise<string | undefined>;
 	}
 }
 

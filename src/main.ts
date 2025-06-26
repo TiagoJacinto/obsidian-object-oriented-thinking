@@ -81,6 +81,10 @@ export default class OOTPlugin extends Plugin {
 		};
 	}
 
+	unload() {
+		delete window.tagOfObjectLink;
+	}
+
 	private async getTagOfObjectHierarchy(file: TFile) {
 		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 		const tag = this.settings.objectTagPrefix + fileData.hierarchy;
@@ -203,9 +207,6 @@ export default class OOTPlugin extends Plugin {
 			await this.updateObjectPrefixHierarchy(file, parentFileData.hierarchy);
 
 			this.filesCacheService.setFileExtends(file.path, parentFile);
-
-			this.filesCacheService.setFileUpdatedAt(file);
-			await this.saveSettings();
 		});
 	}
 
@@ -267,8 +268,6 @@ export default class OOTPlugin extends Plugin {
 	toExistingFiles(paths: string[]) {
 		return paths.map((p) => this.app.vault.getFileByPath(p)).filter(Boolean);
 	}
-
-	onunload() {}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
