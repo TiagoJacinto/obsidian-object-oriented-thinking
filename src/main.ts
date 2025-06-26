@@ -145,7 +145,7 @@ export default class OOTPlugin extends Plugin {
 				parentFrontmatterLink.startsWith('[[') &&
 				parentFrontmatterLink.endsWith(']]');
 			if (!isLink) {
-				new Notice('Update Failed: The extended file should be a link');
+				new Notice('Update failed: the extended file should be a link');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -158,7 +158,7 @@ export default class OOTPlugin extends Plugin {
 
 			const extendsItself = parentLinkPath === file.basename;
 			if (extendsItself) {
-				new Notice('Update Failed: This file should not extend itself');
+				new Notice('Update failed: this file should not extend itself');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -166,7 +166,7 @@ export default class OOTPlugin extends Plugin {
 
 			const parentFile = this.app.metadataCache.getFirstLinkpathDest(parentLinkPath, file.path);
 			if (!parentFile) {
-				new Notice('Update Failed: The extended file no longer exists');
+				new Notice('Update failed: the extended file no longer exists');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -174,7 +174,7 @@ export default class OOTPlugin extends Plugin {
 
 			const extendsIgnoredFile = this.shouldFileBeIgnored(parentFile);
 			if (extendsIgnoredFile) {
-				new Notice('Update Failed: The extended file is ignored');
+				new Notice('Update failed: the extended file is ignored');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -184,7 +184,7 @@ export default class OOTPlugin extends Plugin {
 
 			const hasCyclicHierarchy = parentFileData.hierarchy.includes(fileData.id);
 			if (hasCyclicHierarchy) {
-				new Notice('Update Failed: There is a cyclic hierarchy');
+				new Notice('Update failed: there is a cyclic hierarchy');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;

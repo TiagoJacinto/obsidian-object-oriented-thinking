@@ -70,7 +70,7 @@ export class FilesCacheService extends Component {
 				parentFrontmatterLink.startsWith('[[') &&
 				parentFrontmatterLink.endsWith(']]');
 			if (!isLink) {
-				new Notice('Update Failed: The extended file should be a link');
+				new Notice('Update failed: the extended file should be a link');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 
 				this.plugin.settings.files[file.path] = {
@@ -90,7 +90,7 @@ export class FilesCacheService extends Component {
 
 			const extendsItself = parentLinkPath === file.basename;
 			if (extendsItself) {
-				new Notice('Update Failed: This file should not extend itself');
+				new Notice('Update failed: this file should not extend itself');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 
 				this.plugin.settings.files[file.path] = {
@@ -108,7 +108,7 @@ export class FilesCacheService extends Component {
 				file.path,
 			);
 			if (!parentFile) {
-				new Notice('Update Failed: The extended file no longer exists');
+				new Notice('Update failed: the extended file no longer exists');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 
 				this.plugin.settings.files[file.path] = {
@@ -123,7 +123,7 @@ export class FilesCacheService extends Component {
 
 			const extendsIgnoredFile = this.plugin.shouldFileBeIgnored(parentFile);
 			if (extendsIgnoredFile) {
-				new Notice('Update Failed: The extended file is ignored');
+				new Notice('Update failed: the extended file is ignored');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 				this.plugin.settings.files[file.path] = {
 					id,
@@ -137,7 +137,7 @@ export class FilesCacheService extends Component {
 			const parentFileData = await this.getOrInitializeFileData(parentFile);
 			const hasCyclicHierarchy = parentFileData.hierarchy.includes(id);
 			if (hasCyclicHierarchy) {
-				new Notice('Update Failed: There is a cyclic hierarchy');
+				new Notice('Update failed: there is a cyclic hierarchy');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 				this.plugin.settings.files[file.path] = {
 					id,
