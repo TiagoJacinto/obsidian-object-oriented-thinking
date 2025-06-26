@@ -55,7 +55,7 @@ importers:
         specifier: 9.22.0
         version: 9.22.0(jiti@2.4.2)
       obsidian:
-        specifier: latest
+        specifier: 1.8.7
         version: 1.8.7(@codemirror/state@6.5.2)(@codemirror/view@6.37.2)
       obsidian-dev-utils:
         specifier: ^26.11.0
