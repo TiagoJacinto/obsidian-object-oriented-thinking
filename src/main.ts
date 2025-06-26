@@ -66,7 +66,7 @@ export default class OOTPlugin extends Plugin {
 
 		this.addSettingTab(new OOTSettingsTab(this.app, this));
 
-		window.tagOfObjectLink = async (link, wait = false) => {
+		window.tagOfObjectLink = async (link) => {
 			const path =
 				typeof link === 'string'
 					? link.replaceAll('[[', '').replaceAll(']]', '').split('|')[0]!
