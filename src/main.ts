@@ -58,7 +58,7 @@ export default class OOTPlugin extends Plugin {
 
 		this.filesCacheService = this.addChild(new FilesCacheService(this));
 
-		await this.runWhenLayoutIsReady(async () => {
+		this.app.workspace.onLayoutReady(async () => {
 			await this.filesCacheService.initialize();
 		});
 
@@ -66,7 +66,7 @@ export default class OOTPlugin extends Plugin {
 
 		this.addSettingTab(new OOTSettingsTab(this.app, this));
 
-		window.tagOfObjectLink = async (link, wait = false) => {
+		window.tagOfObjectLink = async (link) => {
 			const path =
 				typeof link === 'string'
 					? link.replaceAll('[[', '').replaceAll(']]', '').split('|')[0]!
@@ -79,12 +79,6 @@ export default class OOTPlugin extends Plugin {
 
 			return this.getTagOfObjectHierarchy(file);
 		};
-	}
-
-	async runWhenLayoutIsReady(cb: () => Promise<void> | void) {
-		if (this.app.workspace.layoutReady) {
-			await cb();
-		} else this.app.workspace.onLayoutReady(cb);
 	}
 
 	private async getTagOfObjectHierarchy(file: TFile) {
@@ -151,7 +145,7 @@ export default class OOTPlugin extends Plugin {
 				parentFrontmatterLink.startsWith('[[') &&
 				parentFrontmatterLink.endsWith(']]');
 			if (!isLink) {
-				new Notice('Update Failed: The extended file should be a link');
+				new Notice('Update failed: the extended file should be a link');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -164,15 +158,15 @@ export default class OOTPlugin extends Plugin {
 
 			const extendsItself = parentLinkPath === file.basename;
 			if (extendsItself) {
-				new Notice('Update Failed: This file should not extend itself');
+				new Notice('Update failed: this file should not extend itself');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
 			}
 
-			const parentFile = this.app.metadataCache.getFirstLinkpathDest(parentLinkPath, '');
+			const parentFile = this.app.metadataCache.getFirstLinkpathDest(parentLinkPath, file.path);
 			if (!parentFile) {
-				new Notice('Update Failed: The extended file no longer exists');
+				new Notice('Update failed: the extended file no longer exists');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -180,7 +174,7 @@ export default class OOTPlugin extends Plugin {
 
 			const extendsIgnoredFile = this.shouldFileBeIgnored(parentFile);
 			if (extendsIgnoredFile) {
-				new Notice('Update Failed: The extended file is ignored');
+				new Notice('Update failed: the extended file is ignored');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -190,7 +184,7 @@ export default class OOTPlugin extends Plugin {
 
 			const hasCyclicHierarchy = parentFileData.hierarchy.includes(fileData.id);
 			if (hasCyclicHierarchy) {
-				new Notice('Update Failed: There is a cyclic hierarchy');
+				new Notice('Update failed: there is a cyclic hierarchy');
 				frontmatter[this.settings.superPropertyName] = null;
 				removeExtension();
 				return;
@@ -271,7 +265,7 @@ export default class OOTPlugin extends Plugin {
 	}
 
 	toExistingFiles(paths: string[]) {
-		return paths.map((p) => this.app.vault.getAbstractFileByPath(p)).filter(Boolean);
+		return paths.map((p) => this.app.vault.getFileByPath(p)).filter(Boolean);
 	}
 
 	onunload() {}

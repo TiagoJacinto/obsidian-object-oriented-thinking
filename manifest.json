@@ -2,7 +2,7 @@
 	"id": "object-oriented-thinking",
 	"name": "Object Oriented Thinking",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.8.7",
 	"description": "Add inheritance-like behavior to notes.",
 	"author": "Tiago Jacinto",
 	"authorUrl": "https://github.com/TiagoJacinto",
