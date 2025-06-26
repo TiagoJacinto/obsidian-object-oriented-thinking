@@ -262,7 +262,7 @@ export default class OOTPlugin extends Plugin {
 	}
 
 	toExistingFiles(paths: string[]) {
-		return paths.map((p) => this.app.vault.getAbstractFileByPath(p)).filter(Boolean);
+		return paths.map((p) => this.app.vault.getFileByPath(p)).filter(Boolean);
 	}
 
 	onunload() {}
