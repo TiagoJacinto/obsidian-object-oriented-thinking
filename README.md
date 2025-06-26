@@ -50,6 +50,22 @@ tags:
 
 Update the `extends` property to change a note’s parent. When you next call `tagOfObjectLink`, the tag will reflect the updated hierarchy.
 
+## Use Cases
+
+### Dataview
+
+#### Selecting note descendants
+
+```dataviewjs
+dv.table(["File"], dv.pages("#" + await tagOfObjectLink(dv.current().file.link)).where((p) => p.file.path !== dv.current().file.path).map(p => [p.file.link]))
+```
+
+#### Selecting note by link literal
+
+```dataviewjs
+dv.table(["File"], dv.pages("#" + await tagOfObjectLink("[[Task]]")).map(p => [p.file.link]))
+```
+
 ## Manually installing the plugin
 
 - Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
