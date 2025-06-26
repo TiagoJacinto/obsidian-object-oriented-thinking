@@ -15,7 +15,7 @@ export class FileCreationHandler extends Handler {
 		const updatedAt = fileData.updatedAt;
 
 		if (updatedAt === undefined || this.fileChanged(file.stat.mtime, updatedAt)) {
-			await this.plugin.runWhenLayoutIsReady(async () => {
+			this.plugin.app.workspace.onLayoutReady(async () => {
 				await this.plugin.updateObjectFileHierarchy(file);
 				this.plugin.filesCacheService.setFileUpdatedAt(file);
 				await this.plugin.saveSettings();

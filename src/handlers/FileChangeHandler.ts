@@ -13,7 +13,7 @@ export class FileChangeHandler extends Handler {
 				this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt));
 
 		if (shouldUpdate) {
-			await this.plugin.runWhenLayoutIsReady(async () => {
+			this.plugin.app.workspace.onLayoutReady(async () => {
 				await this.plugin.updateObjectFileHierarchy(file);
 				this.plugin.filesCacheService.setFileUpdatedAt(file);
 				await this.plugin.saveSettings();

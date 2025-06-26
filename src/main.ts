@@ -58,7 +58,7 @@ export default class OOTPlugin extends Plugin {
 
 		this.filesCacheService = this.addChild(new FilesCacheService(this));
 
-		await this.runWhenLayoutIsReady(async () => {
+		this.app.workspace.onLayoutReady(async () => {
 			await this.filesCacheService.initialize();
 		});
 
@@ -79,12 +79,6 @@ export default class OOTPlugin extends Plugin {
 
 			return this.getTagOfObjectHierarchy(file);
 		};
-	}
-
-	async runWhenLayoutIsReady(cb: () => Promise<void> | void) {
-		if (this.app.workspace.layoutReady) {
-			await cb();
-		} else this.app.workspace.onLayoutReady(cb);
 	}
 
 	private async getTagOfObjectHierarchy(file: TFile) {
