@@ -7,12 +7,7 @@ export class FileChangeHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
 		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
-		const shouldUpdate =
-			this.plugin.settings.saveMode === 'instant' ||
-			(this.plugin.settings.saveMode === 'fixed' &&
-				this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt));
-
-		if (shouldUpdate) {
+		if (this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt)) {
 			this.plugin.app.workspace.onLayoutReady(async () => {
 				await this.plugin.updateObjectFileHierarchy(file);
 			});
@@ -20,6 +15,8 @@ export class FileChangeHandler extends Handler {
 	}
 
 	private shouldUpdateFile(mTime: number, updatedAt: string | undefined) {
+		if (this.plugin.settings.minMinutesBetweenSaves === 0) return true;
+
 		if (updatedAt === undefined) return false;
 
 		const currentMTime = parseDate(mTime);

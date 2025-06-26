@@ -12,11 +12,10 @@ const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(
 export const PluginSettingsSchema = z.object({
 	hideObjectTag: z.boolean(),
 	ignoredFolders: z.array(z.string()),
-	minMinutesBetweenSaves: z.number().min(1),
+	minMinutesBetweenSaves: z.number().min(0),
 	minSoftExclusionDays: z.number().min(0),
 	objectTagPrefix: z.string(),
 	superPropertyName: z.string(),
-	saveMode: z.enum(['instant', 'fixed']),
 	files: z.record(
 		z.string(),
 		z.object({
@@ -37,8 +36,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	ignoredFolders: [],
 	files: {},
 	hideObjectTag: false,
-	saveMode: 'instant',
-	minMinutesBetweenSaves: 1,
+	minMinutesBetweenSaves: 0,
 	minSoftExclusionDays: 14,
 	objectTagPrefix: 'Object/',
 	superPropertyName: 'extends',
@@ -72,10 +70,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 		this.addExcludedFoldersSetting();
 		this.addTimeForSoftExclusion();
-		this.addSaveModeToggle();
-		if (this.plugin.settings.saveMode === 'fixed') {
-			this.addTimeBetweenUpdates();
-		}
+		this.addTimeBetweenUpdates();
 
 		this.addSuperObjectPropertyName();
 
@@ -112,25 +107,13 @@ export class OOTSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	addSaveModeToggle() {
-		new Setting(this.containerEl)
-			.setName('Fixed time between updates')
-			.addToggle(async (toggle) => {
-				toggle.setValue(this.plugin.settings.saveMode === 'fixed').onChange(async (value) => {
-					this.plugin.settings.saveMode = value ? 'fixed' : 'instant';
-					await this.saveSettings();
-					this.display();
-				});
-			});
-	}
-
 	addTimeBetweenUpdates() {
 		new Setting(this.containerEl)
 			.setName('Minimum number of minutes between update')
 			.setDesc('If your files are updating too often, increase this.')
 			.addSlider((slider) =>
 				slider
-					.setLimits(1, 30, 1)
+					.setLimits(0, 30, 1)
 					.setValue(this.plugin.settings.minMinutesBetweenSaves)
 					.onChange(async (value) => {
 						this.plugin.settings.minMinutesBetweenSaves = value;
