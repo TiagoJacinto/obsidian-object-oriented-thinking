@@ -6,7 +6,6 @@ import { FolderSuggest } from './suggesters/FolderSuggester';
 import { type Frontmatter } from './types';
 import { filter } from 'ramda';
 import { z } from 'zod/v4';
-import { ViewModal, updateDisplay } from './ViewModal';
 import deepEqual from 'fast-deep-equal';
 
 const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => {
@@ -255,6 +254,26 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 			new Setting(this.containerEl)
 				.setName(view.name)
+				.addText((text) =>
+					text
+						.setPlaceholder('View name')
+						.setValue(view.name)
+						.onChange(async (value) => {
+							this.plugin.settings.views[i]!.name = value;
+							await this.saveSettings();
+							this.display();
+						}),
+				)
+				.addText((text) =>
+					text
+						.setPlaceholder('File path accessor')
+						.setValue(view.filePathAccessor)
+						.onChange(async (value) => {
+							this.plugin.settings.views[i]!.filePathAccessor = value;
+							await this.saveSettings();
+							this.display();
+						}),
+				)
 				.addButton((button) => {
 					button.onClick(async () => {
 						const oldView = this.plugin.settings.views[i + 1]!;
@@ -282,24 +301,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 					if (i === 0) {
 						button.setDisabled(true);
 					}
-				})
-				.addButton((button) => {
-					button
-						.onClick(() => {
-							const formModal = new ViewModal(
-								this.plugin,
-								async (newView) => {
-									this.plugin.settings.views[i] = newView;
-									await this.plugin.saveSettings();
-									updateDisplay(view);
-									this.display();
-								},
-								view,
-							);
-							formModal.open();
-						})
-						.setIcon('pencil')
-						.setTooltip('Edit view');
 				})
 				.addButton((button) => {
 					button.onClick(async () => {
