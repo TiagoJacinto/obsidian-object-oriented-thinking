@@ -1,8 +1,5 @@
 import * as time from 'date-fns';
 
-export const toId = (str: string) =>
-	str.replaceAll(/[\\|!\"#$%\(\)\[\]=\{\}'\?`^~\+\*:\.,;/]/g, '').replaceAll(' ', '');
-
 const dateFormat = "yyyy-MM-dd'T'HH:mm";
 
 export const formatDate = (input: Date) => time.format(input, dateFormat);

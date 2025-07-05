@@ -5,29 +5,37 @@ import type OOTPlugin from './main';
 import { FolderSuggest } from './suggesters/FolderSuggester';
 import { type Frontmatter } from './types';
 import { filter } from 'ramda';
-import { z } from 'zod';
+import { z } from 'zod/v4';
+import { ViewModal, updateDisplay } from './ViewModal';
+import deepEqual from 'fast-deep-equal';
 
-const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => self.indexOf(value) === index;
+const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => {
+	return self.findIndex((v) => deepEqual(v, value)) === index;
+};
+
+const ViewSchema = z.object({
+	name: z.string(),
+	filePathAccessor: z.string(),
+});
+
+export type View = z.infer<typeof ViewSchema>;
 
 export const PluginSettingsSchema = z.object({
-	hideObjectTag: z.boolean(),
 	ignoredFolders: z.array(z.string()),
 	minMinutesBetweenSaves: z.number().min(0),
 	minSoftExclusionDays: z.number().min(0),
-	objectTagPrefix: z.string(),
 	superPropertyName: z.string(),
 	files: z.record(
 		z.string(),
 		z.object({
-			id: z.string(),
 			extends: z.string().optional(),
 			extendedBy: z.array(z.string()),
-			hierarchy: z.string(),
-			tagged: z.boolean(),
+			hierarchy: z.array(z.string()),
 			updatedAt: z.string().optional(),
 			softExcludedAt: z.string().optional(),
 		}),
 	),
+	views: z.array(ViewSchema),
 });
 
 export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
@@ -35,10 +43,14 @@ export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
 export const DEFAULT_SETTINGS: PluginSettings = {
 	ignoredFolders: [],
 	files: {},
-	hideObjectTag: false,
+	views: [
+		{
+			name: 'dataview',
+			filePathAccessor: '.file.path',
+		},
+	],
 	minMinutesBetweenSaves: 0,
 	minSoftExclusionDays: 14,
-	objectTagPrefix: 'Object/',
 	superPropertyName: 'extends',
 };
 
@@ -48,7 +60,7 @@ type SearchAndRemoveArgs = {
 	currentList: string[];
 	description: string;
 
-	setValue: (newValue: string[]) => Promise<void>;
+	setValue: (newValue: string[]) => void;
 };
 
 export class OOTSettingsTab extends PluginSettingTab {
@@ -68,14 +80,16 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		this.addViewsSetting();
 		this.addExcludedFoldersSetting();
 		this.addTimeForSoftExclusion();
 		this.addTimeBetweenUpdates();
 
 		this.addSuperObjectPropertyName();
+	}
 
-		this.addObjectTagPrefix();
-		this.addHideObjectTagToggle();
+	addViewsSetting() {
+		this.doViewsList();
 	}
 
 	addExcludedFoldersSetting() {
@@ -86,7 +100,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 			description:
 				'Any file updated in this folder will not trigger an updated and created update.',
 
-			setValue: async (newValue) => {
+			setValue: (newValue) => {
 				this.plugin.settings.ignoredFolders = newValue;
 			},
 		});
@@ -123,50 +137,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	addObjectTagPrefix() {
-		const setting = new Setting(this.containerEl)
-			.setName('Object tag prefix')
-			.setDesc('The prefix for the object tag.');
-
-		setting.addText((text) =>
-			text
-				.setPlaceholder('Object/')
-				.setValue(this.plugin.settings.objectTagPrefix)
-				.onChange(async (value) => {
-					const previousPrefix = this.plugin.settings.objectTagPrefix;
-					const newPrefix = value;
-
-					if (previousPrefix === newPrefix) return;
-
-					const hasInvalidTagCharacters = /[\\|!\"#$%\(\)\[\]=\{\}'\?`^~\+\*:\.,;]/g.test(
-						newPrefix,
-					);
-					if (hasInvalidTagCharacters) {
-						setting.controlEl.addClass('setting-error');
-						return;
-					}
-
-					const taggedFiles = filter((f) => Boolean(f.tagged), this.plugin.settings.files);
-					for (const filePath of Object.keys(taggedFiles)) {
-						const file = this.app.vault.getFileByPath(filePath);
-						if (!file) continue;
-
-						await this.app.fileManager.processFrontMatter(file, (frontmatter: Frontmatter) => {
-							if (!frontmatter.tags) return;
-
-							frontmatter.tags = frontmatter.tags.map((tag) =>
-								tag.startsWith(previousPrefix) ? newPrefix + tag.split(previousPrefix)[1] : tag,
-							);
-						});
-					}
-
-					setting.controlEl.removeClass('setting-error');
-					this.plugin.settings.objectTagPrefix = newPrefix;
-					await this.saveSettings();
-				}),
-		);
-	}
-
 	addSuperObjectPropertyName() {
 		new Setting(this.containerEl)
 			.setName('Super object property name')
@@ -200,15 +170,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	addHideObjectTagToggle() {
-		new Setting(this.containerEl).setName('Hide object tag').addToggle(async (toggle) => {
-			toggle.setValue(this.plugin.settings.hideObjectTag).onChange(async (value) => {
-				this.plugin.settings.hideObjectTag = value;
-				await this.saveSettings();
-			});
-		});
-	}
-
 	doSearchAndRemoveList({ name, currentList, description, setValue }: SearchAndRemoveArgs) {
 		let searchInput: SearchComponent | undefined;
 		new Setting(this.containerEl)
@@ -236,7 +197,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 							this.plugin.filesCacheService.setFileSoftExcludedAt(filePath);
 					}
 
-					await setValue([...currentList, newFolder].filter(onlyUniqueArray));
+					setValue([...currentList, newFolder].filter(onlyUniqueArray));
 					await this.saveSettings();
 					searchInput.setValue('');
 					this.display();
@@ -246,7 +207,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 		for (const ignoredFolder of currentList) {
 			new Setting(this.containerEl).setName(ignoredFolder).addButton((button) =>
 				button.setButtonText('Remove').onClick(async () => {
-					await setValue(currentList.filter((value) => value !== ignoredFolder));
+					setValue(currentList.filter((value) => value !== ignoredFolder));
 
 					const filesToInclude = this.plugin.app.vault
 						.getMarkdownFiles()
@@ -265,6 +226,90 @@ export class OOTSettingsTab extends PluginSettingTab {
 					this.display();
 				}),
 			);
+		}
+	}
+
+	doViewsList() {
+		new Setting(this.containerEl)
+			.setName('Views')
+			.setDesc('Define a view so that you can have a custom function for accessing the file path')
+			.addButton((bc) => {
+				bc.setIcon('plus')
+					.setTooltip('Add view')
+					.onClick(async () => {
+						this.plugin.settings.views = [
+							...this.plugin.settings.views,
+							{
+								name: '',
+								filePathAccessor: '.',
+							},
+						].filter(onlyUniqueArray);
+
+						await this.saveSettings();
+						this.display();
+					});
+			});
+
+		for (const view of this.plugin.settings.views) {
+			const i = this.plugin.settings.views.indexOf(view);
+
+			new Setting(this.containerEl)
+				.setName(view.name)
+				.addButton((button) => {
+					button.onClick(async () => {
+						const oldView = this.plugin.settings.views[i + 1]!;
+						this.plugin.settings.views[i + 1] = view;
+						this.plugin.settings.views[i] = oldView;
+						await this.saveSettings();
+						this.display();
+					});
+					button.setIcon('down-arrow-with-tail');
+					button.setTooltip('Move view down');
+					if (i === this.plugin.settings.views.length - 1) {
+						button.setDisabled(true);
+					}
+				})
+				.addButton((button) => {
+					button.onClick(async () => {
+						const oldView = this.plugin.settings.views[i - 1]!;
+						this.plugin.settings.views[i - 1] = view;
+						this.plugin.settings.views[i] = oldView;
+						await this.saveSettings();
+						this.display();
+					});
+					button.setIcon('up-arrow-with-tail');
+					button.setTooltip('Move view up');
+					if (i === 0) {
+						button.setDisabled(true);
+					}
+				})
+				.addButton((button) => {
+					button
+						.onClick(() => {
+							const formModal = new ViewModal(
+								this.plugin,
+								async (newView) => {
+									this.plugin.settings.views[i] = newView;
+									await this.plugin.saveSettings();
+									updateDisplay(view);
+									this.display();
+								},
+								view,
+							);
+							formModal.open();
+						})
+						.setIcon('pencil')
+						.setTooltip('Edit view');
+				})
+				.addButton((button) => {
+					button.onClick(async () => {
+						this.plugin.settings.views.remove(view);
+						await this.plugin.saveSettings();
+						this.display();
+					});
+					button.setIcon('cross');
+					button.setTooltip('Remove view');
+				});
 		}
 	}
 }

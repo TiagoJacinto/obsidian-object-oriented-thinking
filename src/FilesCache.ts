@@ -1,6 +1,6 @@
 import { type TFile, type TAbstractFile, Component, Notice } from 'obsidian';
 import type OOTPlugin from './main';
-import { formatDate, parseDate, toId } from './utils';
+import { formatDate, parseDate } from './utils';
 import { type Frontmatter } from './types';
 import * as time from 'date-fns';
 
@@ -50,16 +50,12 @@ export class FilesCacheService extends Component {
 	}
 
 	async initializeFileData(file: TFile) {
-		const id = toId(file.path);
-
 		await this.plugin.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) => {
 			const parentFrontmatterLink = frontmatter[this.plugin.settings.superPropertyName];
 
 			if (!parentFrontmatterLink) {
 				this.plugin.settings.files[file.path] = {
-					id,
-					hierarchy: id,
-					tagged: false,
+					hierarchy: [file.path],
 					extendedBy: [],
 				};
 				return;
@@ -74,9 +70,7 @@ export class FilesCacheService extends Component {
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 
 				this.plugin.settings.files[file.path] = {
-					id,
-					hierarchy: id,
-					tagged: false,
+					hierarchy: [file.path],
 					extendedBy: [],
 				};
 
@@ -94,9 +88,8 @@ export class FilesCacheService extends Component {
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 
 				this.plugin.settings.files[file.path] = {
-					id,
-					hierarchy: id,
-					tagged: false,
+					hierarchy: [file.path],
+
 					extendedBy: [],
 				};
 
@@ -112,9 +105,8 @@ export class FilesCacheService extends Component {
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 
 				this.plugin.settings.files[file.path] = {
-					id,
-					hierarchy: id,
-					tagged: false,
+					hierarchy: [file.path],
+
 					extendedBy: [],
 				};
 
@@ -126,32 +118,29 @@ export class FilesCacheService extends Component {
 				new Notice('Update failed: the extended file is ignored');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 				this.plugin.settings.files[file.path] = {
-					id,
-					hierarchy: id,
-					tagged: false,
+					hierarchy: [file.path],
+
 					extendedBy: [],
 				};
 				return;
 			}
 
 			const parentFileData = await this.getOrInitializeFileData(parentFile);
-			const hasCyclicHierarchy = parentFileData.hierarchy.includes(id);
+			const hasCyclicHierarchy = parentFileData.hierarchy.includes(file.path);
 			if (hasCyclicHierarchy) {
 				new Notice('Update failed: there is a cyclic hierarchy');
 				frontmatter[this.plugin.settings.superPropertyName] = null;
 				this.plugin.settings.files[file.path] = {
-					id,
-					hierarchy: id,
-					tagged: false,
+					hierarchy: [file.path],
+
 					extendedBy: [],
 				};
 				return;
 			}
 
 			this.plugin.settings.files[file.path] = {
-				id,
-				hierarchy: parentFileData.hierarchy + '/' + id,
-				tagged: false,
+				hierarchy: [...parentFileData.hierarchy, file.path],
+
 				extends: parentFile.path,
 				extendedBy: [],
 			};
@@ -171,15 +160,6 @@ export class FilesCacheService extends Component {
 		const result = this.plugin.settings.files[path];
 		if (!result) throw new Error(`File data of ${path} not found`);
 		return result;
-	}
-
-	tagFile({ path }: TFile) {
-		const fileData = this.getInitializedFileData(path);
-
-		this.plugin.settings.files[path] = {
-			...fileData,
-			tagged: true,
-		};
 	}
 
 	setFileUpdatedAt({ path }: TAbstractFile) {
@@ -218,12 +198,12 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	updateFileExtendedBy(path: string, previousPath: string, newPath: string) {
+	updateFileExtendedBy(path: string, oldPath: string, newPath: string) {
 		const fileData = this.getInitializedFileData(path);
 
 		this.plugin.settings.files[path] = {
 			...fileData,
-			extendedBy: fileData.extendedBy.map((f) => (f === previousPath ? newPath : f)),
+			extendedBy: fileData.extendedBy.map((f) => (f === oldPath ? newPath : f)),
 		};
 	}
 
@@ -247,19 +227,19 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	setFileHierarchy(path: string, hierarchy: string) {
+	updateHierarchyPath(path: string, oldPath: string, newPath: string) {
+		const fileData = this.getInitializedFileData(path);
+		this.plugin.settings.files[path] = {
+			...fileData,
+			hierarchy: fileData.hierarchy.map((p) => (p === oldPath ? newPath : p)),
+		};
+	}
+
+	setFileHierarchy(path: string, hierarchy: string[]) {
 		const fileData = this.getInitializedFileData(path);
 		this.plugin.settings.files[path] = {
 			...fileData,
 			hierarchy,
-		};
-	}
-
-	setFileId({ path }: TAbstractFile, id: string) {
-		const fileData = this.getInitializedFileData(path);
-		this.plugin.settings.files[path] = {
-			...fileData,
-			id,
 		};
 	}
 }

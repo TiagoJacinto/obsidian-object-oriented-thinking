@@ -7,11 +7,11 @@ export class FileChangeHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
 		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
-		if (this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt)) {
-			this.plugin.app.workspace.onLayoutReady(async () => {
-				await this.plugin.updateObjectFileHierarchy(file);
-			});
-		}
+		if (!this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt)) return;
+
+		this.plugin.app.workspace.onLayoutReady(async () => {
+			await this.plugin.updateObjectFileHierarchy(file);
+		});
 	}
 
 	private shouldUpdateFile(mTime: number, updatedAt: string | undefined) {

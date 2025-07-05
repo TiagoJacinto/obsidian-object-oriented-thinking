@@ -1,6 +1,5 @@
 import { type TFile } from 'obsidian';
 import { Handler } from 'src/Handler';
-import { toId } from 'src/utils';
 
 type Context = { file: TFile; oldPath: string };
 
@@ -11,16 +10,11 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 		this.plugin.settings.files[file.path] = oldFileData;
 		delete this.plugin.settings.files[oldPath];
 
-		const oldId = oldFileData.id;
-		const newId = toId(file.path);
-		this.plugin.filesCacheService.setFileId(file, newId);
-
-		this.updateHierarchyPathSection(file, oldId, newId);
+		this.updateHierarchyPathSection(file, oldPath, file.path);
 
 		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
 		const dependentFiles = this.plugin.toExistingFiles(fileData.extendedBy);
-
 		dependentFiles.forEach((f) => this.plugin.filesCacheService.setFileExtends(f.path, file));
 
 		const parentPath = fileData.extends;
@@ -33,13 +27,11 @@ export class FileRenameHandler extends Handler<{ oldPath: string }> {
 	updateHierarchyPathSection(file: TFile, oldPath: string, newPath: string) {
 		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
 
-		const newTag = fileData.hierarchy.replace(oldPath, newPath);
-		this.plugin.filesCacheService.setFileHierarchy(file.path, newTag);
+		this.plugin.filesCacheService.updateHierarchyPath(file.path, oldPath, newPath);
 
 		const dependentFiles = fileData.extendedBy.map((filePath) =>
 			this.plugin.app.vault.getFileByPath(filePath),
 		);
-		if (!dependentFiles) return;
 
 		for (const dependentFile of dependentFiles) {
 			if (!dependentFile) continue;

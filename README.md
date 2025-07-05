@@ -2,10 +2,6 @@
 
 Add inheritance-like behavior to notes.
 
-## Features
-
-- On-Demand Tag Generation
-
 ## Usage
 
 ### 1. Extend
@@ -18,52 +14,143 @@ extends: [[ParentNote]]
 ---
 ```
 
-### 2. Get Object Tag
+### 2. Query
 
-To retrieve the object tag for a note, call the following JavaScript function:
+Either using utility methods `(childObjectFileByPath(path).isObjectOf(parentObjectFile))` or views `(oot.views.dataview.isDescendentByLiteralLink("[[Task]]"))`.
+
+## Utilities
+
+### Methods
+
+#### oot.utilities.isObjectFile(file: TFile): boolean
+
+##### Examples
 
 ```js
-tagOfObjectLink('[[ChildNote]]'); // returns object tag prefix (default: Object) + note hierarchy (e.g., ParentNote/ChildNote)
+const file = app.vault.getFileByPath('Inbox/File');
+oot.utilities.isObjectFile(file);
 ```
 
-This will add object tags to the frontmatter of the entire hierarchy:
+#### oot.utilities.parentObjectFileByLiteralLink(literalLink: `[[${string}]]`): TFile | null
 
-Parent Note:
+##### Examples
 
-```md
----
-tags:
-  - Object/ParentNote
----
+```js
+oot.utilities.parentObjectFileByLiteralLink('[[File]]');
 ```
 
-Child Note:
+#### oot.utilities.parentObjectFileByPath(path: string): TFile | null
 
-```md
----
-tags:
-  - Object/ParentNote/ChildNote
----
+##### Examples
+
+```js
+oot.utilities.parentObjectFileByPath('Inbox/File');
 ```
 
-### 3. Changing the Hierarchy
+#### oot.utilities.childObjectFileByPath(path: string): { isObjectOf: (parentFile: TFile) => boolean; isDescendentOf: (parentFile: TFile) => boolean; } | null
 
-Update the `extends` property to change a note’s parent. When you next call `tagOfObjectLink`, the tag will reflect the updated hierarchy.
-
-## Use Cases
-
-### Dataview
-
-#### Selecting note descendants
+##### Examples
 
 ```dataviewjs
-dv.table(["File"], dv.pages("#" + await tagOfObjectLink(dv.current().file.link)).where((p) => p.file.path !== dv.current().file.path).map(p => [p.file.link]))
+const {parentObjectFileByLiteralLink, childObjectFileByPath} = oot.utilities
+const taskObjectFile = parentObjectFileByLiteralLink("[[Inbox/Task|Task]]")
+
+dv.table(["File"], dv.pages().where(page => childObjectFileByPath(page.file.path).isObjectOf(taskObjectFile)
+).map(p => [p.file.link]))
 ```
 
-#### Selecting note by link literal
+You can define your own functions like this or use javascript loader plugins like [CustomJS](https://github.com/saml-dev/obsidian-custom-js):
 
 ```dataviewjs
-dv.table(["File"], dv.pages("#" + await tagOfObjectLink("[[Task]]")).map(p => [p.file.link]))
+const {parentObjectFileByLiteralLink, childObjectFileByPath} = oot.utilities
+const isObjectOf = (objectFile) => (page) => childObjectFileByPath(page.file.path).isObjectOf(objectFile)
+
+const taskObjectFile = parentObjectFileByLiteralLink("[[Inbox/Task|Task]]")
+
+dv.table(["File"], dv.pages().where(isObjectOf(taskObjectFile)).map(p => [p.file.link]))
+```
+
+#### oot.utilities.objectHierarchyByPath(path: string): string[] | null
+
+##### Examples
+
+```dataviewjs
+const taskObjectFile = oot.utilities.objectFileByLiteralLink("[[Inbox/Task|Task]]")
+
+dv.table(["File"], dv.pages().where(page => oot.utilities.objectHierarchyByPath(page.file.path)?.includes(taskObjectFile.path) ?? false).map(p => [p.file.link]))
+```
+
+#### oot.utilities.objectHierarchyByFile(file: TFile): string[] | null
+
+##### Examples
+
+```dataviewjs
+const file = app.vault.getFileByPath('Inbox/File');
+oot.utilities.objectHierarchyByFile(file)
+```
+
+## Views
+
+### oot.views["name"].isObjectByFile(file: TFile): (accessedObject: unknown) => boolean
+
+#### Examples
+
+```dataviewjs
+const taskObjectFile = oot.utilities.parentObjectFileByLiteralLink("[[Inbox/Task|Task]]")
+const isTaskObjectFile = oot.views.dataview.isObjectByFile(taskObjectFile)
+
+dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
+```
+
+### oot.views["name"].isObjectByLiteralLink(file: TFile): (accessedObject: unknown) => boolean
+
+#### Examples
+
+```dataviewjs
+const isTaskObjectFile = oot.views.dataview.isObjectByLiteralLink("[[Task]]")
+
+dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
+```
+
+### oot.views["name"].isObjectByFilePath(file: TFile): (accessedObject: unknown) => boolean
+
+#### Examples
+
+```dataviewjs
+const isCurrentObjectFile = oot.views.dataview.isObjectByFilePath(dv.current().file.path)
+
+dv.table(["File"], dv.pages().where(isCurrentObjectFile).map(p => [p.file.link]))
+```
+
+### oot.views["name"].isDescendentByFile(file: TFile): (accessedObject: unknown) => boolean
+
+#### Examples
+
+```dataviewjs
+const taskObjectFile = oot.utilities.parentObjectFileByLiteralLink("[[Inbox/Task|Task]]")
+const isTaskObjectFile = oot.views.dataview.isDescendentByFile(taskObjectFile)
+
+dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
+```
+
+### oot.views["name"].isDescendentByLiteralLink(file: TFile): (accessedObject: unknown) => boolean
+
+#### Examples
+
+```dataviewjs
+const isTaskObjectFile = oot.views.dataview.isDescendentByLiteralLink("[[Task]]")
+
+dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
+```
+
+### oot.views["name"].isDescendentByFilePath(file: TFile): (accessedObject: unknown) => boolean
+
+#### Examples
+
+```dataviewjs
+const isCurrentObjectFile = oot.views.dataview.isDescendentByFilePath(dv.current().file.path)
+
+dv.table(["File"], dv.pages().where(isCurrentObjectFile).map(p => [p.file.link]))
 ```
 
 ## Manually installing the plugin

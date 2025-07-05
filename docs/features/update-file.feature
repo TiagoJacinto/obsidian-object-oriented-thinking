@@ -3,17 +3,12 @@ Feature: Update file
 Scenario: File doesn't extend another file
 Given a file named "File" that doesn't extend another file
 When I update the file
-Then I should see the object hierarchy as "File"
-
-Scenario: File has empty extends property
-Given a file named "File" with empty extends property
-When I update the file
-Then I should see the object hierarchy as "File"
+Then I should see the object hierarchy as ["File"]
 
 Scenario: File extends another file
 Given the "SubFile" extends the "SuperFile"
 When I update the file named "SubFile"
-Then I should see the object hierarchy as "SuperFile/SubFile"
+Then I should see the object hierarchy as ["SuperFile", "SubFile"]
 
 Scenario: File extends itself
 Given a file that extends itself
@@ -59,7 +54,7 @@ Given "File1" is extending "File2"
 When I remove the link between them
 Then I should see that "File1" is no longer extending "File2"
 And "File2" is no longer extended by "File1"
-And "File1" object hierarchy is "File1"
+And "File1" hierarchy is ["File1"]
 
 Scenario: Save mode is instant
 Given I have set the save mode setting to instant

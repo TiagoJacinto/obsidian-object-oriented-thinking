@@ -7,7 +7,7 @@ export class FileDeletionHandler extends Handler {
 
 		const dependentFiles = this.plugin.toExistingFiles(fileData.extendedBy);
 
-		await this.updateObjectTagRightTrail(dependentFiles, fileData.id);
+		await this.sliceHierarchyAtRightOfPath(dependentFiles, path);
 
 		dependentFiles.forEach((f) => this.plugin.filesCacheService.setFileExtends(f.path, null));
 
@@ -23,17 +23,18 @@ export class FileDeletionHandler extends Handler {
 		await this.impl(file.path);
 	}
 
-	private async updateObjectTagRightTrail(dependentFiles: TAbstractFile[], splitSection: string) {
+	private async sliceHierarchyAtRightOfPath(dependentFiles: TAbstractFile[], path: string) {
 		for (const dependentFile of dependentFiles) {
 			const fileData = this.plugin.filesCacheService.getInitializedFileData(dependentFile.path);
 
-			const newTag = fileData.hierarchy.split(splitSection + '/')[1]!;
+			// remove all at the right of path
+			const newHierarchy = fileData.hierarchy.slice(fileData.hierarchy.indexOf(path) + 1);
 
-			this.plugin.filesCacheService.setFileHierarchy(dependentFile.path, newTag);
+			this.plugin.filesCacheService.setFileHierarchy(dependentFile.path, newHierarchy);
 
-			await this.updateObjectTagRightTrail(
+			await this.sliceHierarchyAtRightOfPath(
 				this.plugin.toExistingFiles(fileData.extendedBy),
-				splitSection,
+				path,
 			);
 		}
 	}
