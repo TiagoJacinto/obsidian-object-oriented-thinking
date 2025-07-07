@@ -66,11 +66,7 @@ export default class OOTPlugin extends Plugin {
 
 				parentObjectFileByLiteralLink: (unparsedLiteralLink: unknown) => {
 					const literalLink = LiteralLinkSchema.parse(unparsedLiteralLink);
-
-					const file = this.objectFileByLiteralLink(literalLink);
-					if (!file) return null;
-
-					return file;
+					return this.objectFileByLiteralLink(literalLink);
 				},
 				parentObjectFileByPath: (unparsedPath: unknown) => {
 					const path = z.string().parse(unparsedPath);
