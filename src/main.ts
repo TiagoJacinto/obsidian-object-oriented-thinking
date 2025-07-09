@@ -1,4 +1,4 @@
-import { Notice, Plugin, TFile } from 'obsidian';
+import { Notice, Plugin, type TFile } from 'obsidian';
 
 import {
 	type PluginSettings,
@@ -54,40 +54,26 @@ export default class OOTPlugin extends Plugin {
 		this.addSettingTab(new OOTSettingsTab(this.app, this));
 
 		window.oot = {
-			...window.oot,
-			utilities: {
-				isObjectFile: (unparsedFile: unknown) => {
-					const file = z.instanceof(TFile).parse(unparsedFile);
-					return this.isObjectFile(file);
-				},
+			getObjectFileByPath: (unparsedPath) => {
+				const path = z.string().parse(unparsedPath);
+				const file = this.app.vault.getFileByPath(path);
+				if (!file || !this.isObjectFile(file)) return null;
+				return this.toObjectFile(file);
+			},
+			getObjectFileByLink: (unparsedLink) => {
+				const linkpath = z
+					.string('Must be a literal link in the format [[Link]]')
+					.regex(/^\[\[.*\]\]$/, 'Must be a literal link in the format [[Link]]')
+					.and(z.custom<`[[${string}]]`>())
+					.parse(unparsedLink)
+					.replaceAll('[[', '')
+					.replaceAll(']]', '')
+					.split('|')[0]!;
 
-				parentObjectFileByLiteralLink: (unparsedLiteralLink: unknown) => {
-					const literalLink = LiteralLinkSchema.parse(unparsedLiteralLink);
-					return this.objectFileByLiteralLink(literalLink);
-				},
-				parentObjectFileByPath: (unparsedPath: unknown) => {
-					const path = z.string().parse(unparsedPath);
-					return this.objectFileByPath(path);
-				},
+				const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, '');
+				if (!file || !this.isObjectFile(file)) return null;
 
-				childObjectFileByPath: (unparsedPath: unknown) => {
-					const path = z.string().parse(unparsedPath);
-					const file = this.objectFileByPath(path);
-					if (!file) return null;
-
-					return this.toObjectFile(file);
-				},
-
-				objectHierarchyByPath: (unparsedPath: unknown) => {
-					const path = z.string().parse(unparsedPath);
-					return this.objectHierarchyByPath(path);
-				},
-				objectHierarchyByFile: (unparsedFile: unknown) => {
-					const objectFile = z.instanceof(TFile).parse(unparsedFile);
-					if (!this.isObjectFile(objectFile)) return null;
-
-					return this.objectHierarchyByFile(objectFile);
-				},
+				return this.toObjectFile(file);
 			},
 		};
 	}
@@ -100,48 +86,17 @@ export default class OOTPlugin extends Plugin {
 		return !this.shouldFileBeIgnored(file);
 	}
 
-	toObjectFile(childFile: TFile): ObjectFile {
+	toObjectFile(file: TFile): ObjectFile {
 		return {
-			isDescendentOf: (unparsedParentObjectFile: unknown) => {
-				const parentFile = z.instanceof(TFile).parse(unparsedParentObjectFile);
-				const childHierarchy = this.objectHierarchyByFile(childFile);
-				return parentFile.path !== childFile.path && childHierarchy.includes(parentFile.path);
-			},
-			isObjectOf: (unparsedObjectFile: unknown) => {
-				const parentFile = z.instanceof(TFile).parse(unparsedObjectFile);
-				const childHierarchy = this.objectHierarchyByFile(childFile);
-				return childHierarchy.includes(parentFile.path);
+			...file,
+			isDescendantOf: (unparsedParentFile) => {
+				const parentFile = z.object({ path: z.string() }).parse(unparsedParentFile);
+				const childFileData = this.filesCacheService.getInitializedFileData(file.path);
+				const childHierarchy = childFileData.hierarchy;
+
+				return file.path !== parentFile.path && childHierarchy.includes(parentFile.path);
 			},
 		};
-	}
-
-	objectFileByLiteralLink(literalLink: LiteralLink) {
-		const file = this.app.metadataCache.getFirstLinkpathDest(
-			literalLinkToLinkPath(literalLink),
-			'',
-		);
-		if (!file) throw new Error('File not found');
-		if (!this.isObjectFile(file)) return null;
-		return file;
-	}
-
-	objectFileByPath(path: string) {
-		const file = this.app.vault.getFileByPath(path);
-		if (!file) throw new Error('File not found');
-		if (!this.isObjectFile(file)) return null;
-		return file;
-	}
-
-	objectHierarchyByPath(path: string) {
-		const file = this.objectFileByPath(path);
-		if (!file) return null;
-		const fileData = this.filesCacheService.getInitializedFileData(path);
-		return fileData.hierarchy;
-	}
-
-	objectHierarchyByFile(objectFile: TFile) {
-		const fileData = this.filesCacheService.getInitializedFileData(objectFile.path);
-		return fileData.hierarchy;
 	}
 
 	setupEventHandlers() {

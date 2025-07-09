@@ -1,6 +1,6 @@
 import { type TFile } from 'obsidian';
 import '@total-typescript/ts-reset';
-import { type ObjectFile } from './src/types';
+import { type ObjectFile } from 'src/types';
 
 declare global {
 	declare const ExcalidrawAutomate:
@@ -11,17 +11,8 @@ declare global {
 
 	interface Window {
 		oot?: {
-			utilities: {
-				isObjectFile: (unparsedFile: unknown) => boolean;
-
-				parentObjectFileByLiteralLink: (unparsedLiteralLink: unknown) => TFile | null;
-				parentObjectFileByPath: (unparsedPath: unknown) => TFile | null;
-
-				childObjectFileByPath: (unparsedPath: unknown) => ObjectFile | null;
-
-				objectHierarchyByPath: (unparsedPath: unknown) => string[] | null;
-				objectHierarchyByFile: (unparsedFile: unknown) => string[] | null;
-			};
+			getObjectFileByPath: (unparsedPath: unknown) => ObjectFile | null;
+			getObjectFileByLink: (unparsedLink: unknown) => ObjectFile | null;
 		};
 	}
 }
