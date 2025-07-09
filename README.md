@@ -34,7 +34,7 @@ dv.table(["File"], dv.pages().where(page => {
 }).map(p => [p.file.link]))
 ```
 
-### oot.getObjectFileByPath(path: string): TFile | null
+### oot.getObjectFileByPath(path: string): TFile & {isDescendantOf: (parentFile: TFile) => boolean} | null
 
 #### Examples
 
