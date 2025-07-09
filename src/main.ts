@@ -17,15 +17,6 @@ import { z } from 'zod/v4';
 
 const isExcalidrawFile = (file: TFile) => ExcalidrawAutomate?.isExcalidrawFile(file) ?? false;
 
-export const LiteralLinkSchema = z
-	.string('Must be a literal link in the format [[Link]]')
-	.regex(/^\[\[.*\]\]$/, 'Must be a literal link in the format [[Link]]')
-	.and(z.custom<`[[${string}]]`>());
-type LiteralLink = z.infer<typeof LiteralLinkSchema>;
-
-export const literalLinkToLinkPath = (literalLink: LiteralLink) =>
-	literalLink.replaceAll('[[', '').replaceAll(']]', '').split('|')[0]!;
-
 export default class OOTPlugin extends Plugin {
 	settings!: PluginSettings;
 	filesCacheService!: FilesCacheService;
