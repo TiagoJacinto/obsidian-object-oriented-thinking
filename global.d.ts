@@ -1,6 +1,6 @@
 import { type TFile } from 'obsidian';
 import '@total-typescript/ts-reset';
-import { type ObjectFile, type View } from './src/types';
+import { type ObjectFile } from './src/types';
 
 declare global {
 	declare const ExcalidrawAutomate:
@@ -22,7 +22,6 @@ declare global {
 				objectHierarchyByPath: (unparsedPath: unknown) => string[] | null;
 				objectHierarchyByFile: (unparsedFile: unknown) => string[] | null;
 			};
-			views?: Record<string, View>;
 		};
 	}
 }

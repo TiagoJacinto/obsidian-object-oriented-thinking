@@ -12,13 +12,6 @@ const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => {
 	return self.findIndex((v) => deepEqual(v, value)) === index;
 };
 
-const ViewSchema = z.object({
-	name: z.string(),
-	filePathAccessor: z.string(),
-});
-
-export type View = z.infer<typeof ViewSchema>;
-
 export const PluginSettingsSchema = z.object({
 	ignoredFolders: z.array(z.string()),
 	minMinutesBetweenSaves: z.number().min(0),
@@ -34,7 +27,6 @@ export const PluginSettingsSchema = z.object({
 			softExcludedAt: z.string().optional(),
 		}),
 	),
-	views: z.array(ViewSchema),
 });
 
 export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
@@ -42,12 +34,6 @@ export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
 export const DEFAULT_SETTINGS: PluginSettings = {
 	ignoredFolders: [],
 	files: {},
-	views: [
-		{
-			name: 'dataview',
-			filePathAccessor: '.file.path',
-		},
-	],
 	minMinutesBetweenSaves: 0,
 	minSoftExclusionDays: 14,
 	superPropertyName: 'extends',
@@ -79,16 +65,11 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		this.addViewsSetting();
 		this.addExcludedFoldersSetting();
 		this.addTimeForSoftExclusion();
 		this.addTimeBetweenUpdates();
 
 		this.addSuperObjectPropertyName();
-	}
-
-	addViewsSetting() {
-		this.doViewsList();
 	}
 
 	addExcludedFoldersSetting() {
@@ -225,92 +206,6 @@ export class OOTSettingsTab extends PluginSettingTab {
 					this.display();
 				}),
 			);
-		}
-	}
-
-	doViewsList() {
-		new Setting(this.containerEl)
-			.setName('Views')
-			.setDesc('Define a view so that you can have a custom function for accessing the file path')
-			.addButton((bc) => {
-				bc.setIcon('plus')
-					.setTooltip('Add view')
-					.onClick(async () => {
-						this.plugin.settings.views = [
-							...this.plugin.settings.views,
-							{
-								name: '',
-								filePathAccessor: '.',
-							},
-						].filter(onlyUniqueArray);
-
-						await this.saveSettings();
-						this.display();
-					});
-			});
-
-		for (const view of this.plugin.settings.views) {
-			const i = this.plugin.settings.views.indexOf(view);
-
-			new Setting(this.containerEl)
-				.setName(view.name)
-				.addText((text) =>
-					text
-						.setPlaceholder('View name')
-						.setValue(view.name)
-						.onChange(async (value) => {
-							this.plugin.settings.views[i]!.name = value;
-							await this.saveSettings();
-							this.display();
-						}),
-				)
-				.addText((text) =>
-					text
-						.setPlaceholder('File path accessor')
-						.setValue(view.filePathAccessor)
-						.onChange(async (value) => {
-							this.plugin.settings.views[i]!.filePathAccessor = value;
-							await this.saveSettings();
-							this.display();
-						}),
-				)
-				.addButton((button) => {
-					button.onClick(async () => {
-						const oldView = this.plugin.settings.views[i + 1]!;
-						this.plugin.settings.views[i + 1] = view;
-						this.plugin.settings.views[i] = oldView;
-						await this.saveSettings();
-						this.display();
-					});
-					button.setIcon('down-arrow-with-tail');
-					button.setTooltip('Move view down');
-					if (i === this.plugin.settings.views.length - 1) {
-						button.setDisabled(true);
-					}
-				})
-				.addButton((button) => {
-					button.onClick(async () => {
-						const oldView = this.plugin.settings.views[i - 1]!;
-						this.plugin.settings.views[i - 1] = view;
-						this.plugin.settings.views[i] = oldView;
-						await this.saveSettings();
-						this.display();
-					});
-					button.setIcon('up-arrow-with-tail');
-					button.setTooltip('Move view up');
-					if (i === 0) {
-						button.setDisabled(true);
-					}
-				})
-				.addButton((button) => {
-					button.onClick(async () => {
-						this.plugin.settings.views.remove(view);
-						await this.plugin.saveSettings();
-						this.display();
-					});
-					button.setIcon('cross');
-					button.setTooltip('Remove view');
-				});
 		}
 	}
 }

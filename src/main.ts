@@ -14,7 +14,6 @@ import { FileChangeHandler } from './handlers/FileChangeHandler';
 import { FileDeletionHandler } from './handlers/FileDeletionHandler';
 import { dissocPath } from 'ramda';
 import { z } from 'zod/v4';
-import { ViewsLoader } from './ViewsLoader';
 
 const isExcalidrawFile = (file: TFile) => ExcalidrawAutomate?.isExcalidrawFile(file) ?? false;
 
@@ -30,7 +29,6 @@ export const literalLinkToLinkPath = (literalLink: LiteralLink) =>
 export default class OOTPlugin extends Plugin {
 	settings!: PluginSettings;
 	filesCacheService!: FilesCacheService;
-	viewsLoader!: ViewsLoader;
 
 	fileCreationHandler!: FileCreationHandler;
 	fileRenameHandler!: FileRenameHandler;
@@ -46,7 +44,6 @@ export default class OOTPlugin extends Plugin {
 		this.fileDeletionHandler = new FileDeletionHandler(this);
 
 		this.filesCacheService = this.addChild(new FilesCacheService(this));
-		this.viewsLoader = this.addChild(new ViewsLoader(this));
 
 		this.app.workspace.onLayoutReady(async () => {
 			await this.filesCacheService.initialize();
@@ -297,7 +294,6 @@ export default class OOTPlugin extends Plugin {
 	}
 
 	async saveSettings() {
-		this.viewsLoader.redefineViews();
 		await this.saveData(this.settings);
 	}
 

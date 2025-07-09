@@ -16,7 +16,7 @@ extends: [[ParentNote]]
 
 ### 2. Query
 
-Either using utility methods `(childObjectFileByPath(path).isObjectOf(parentObjectFile))` or views `(oot.views.dataview.isDescendentByLiteralLink("[[Task]]"))`.
+Using utility methods `(childObjectFileByPath(path).isObjectOf(parentObjectFile))`
 
 ## Utilities
 
@@ -87,70 +87,6 @@ dv.table(["File"], dv.pages().where(page => oot.utilities.objectHierarchyByPath(
 ```dataviewjs
 const file = app.vault.getFileByPath('Inbox/File');
 oot.utilities.objectHierarchyByFile(file)
-```
-
-## Views
-
-### oot.views["name"].isObjectByFile(file: TFile): (accessedObject: unknown) => boolean
-
-#### Examples
-
-```dataviewjs
-const taskObjectFile = oot.utilities.parentObjectFileByLiteralLink("[[Inbox/Task|Task]]")
-const isTaskObjectFile = oot.views.dataview.isObjectByFile(taskObjectFile)
-
-dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
-```
-
-### oot.views["name"].isObjectByLiteralLink(file: TFile): (accessedObject: unknown) => boolean
-
-#### Examples
-
-```dataviewjs
-const isTaskObjectFile = oot.views.dataview.isObjectByLiteralLink("[[Task]]")
-
-dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
-```
-
-### oot.views["name"].isObjectByFilePath(file: TFile): (accessedObject: unknown) => boolean
-
-#### Examples
-
-```dataviewjs
-const isCurrentObjectFile = oot.views.dataview.isObjectByFilePath(dv.current().file.path)
-
-dv.table(["File"], dv.pages().where(isCurrentObjectFile).map(p => [p.file.link]))
-```
-
-### oot.views["name"].isDescendentByFile(file: TFile): (accessedObject: unknown) => boolean
-
-#### Examples
-
-```dataviewjs
-const taskObjectFile = oot.utilities.parentObjectFileByLiteralLink("[[Inbox/Task|Task]]")
-const isTaskObjectFile = oot.views.dataview.isDescendentByFile(taskObjectFile)
-
-dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
-```
-
-### oot.views["name"].isDescendentByLiteralLink(file: TFile): (accessedObject: unknown) => boolean
-
-#### Examples
-
-```dataviewjs
-const isTaskObjectFile = oot.views.dataview.isDescendentByLiteralLink("[[Task]]")
-
-dv.table(["File"], dv.pages().where(isTaskObjectFile).map(p => [p.file.link]))
-```
-
-### oot.views["name"].isDescendentByFilePath(file: TFile): (accessedObject: unknown) => boolean
-
-#### Examples
-
-```dataviewjs
-const isCurrentObjectFile = oot.views.dataview.isDescendentByFilePath(dv.current().file.path)
-
-dv.table(["File"], dv.pages().where(isCurrentObjectFile).map(p => [p.file.link]))
 ```
 
 ## Manually installing the plugin
