@@ -24,7 +24,7 @@ Using utility methods `(getObjectFileByPath(path).isDescendantOf(parentObjectFil
 
 #### Examples
 
-```dataviewjs
+```js
 const taskObjectFile = oot.getObjectFileByLink("[[Task]]")
 
 dv.table(["File"], dv.pages().where(page => {
@@ -58,7 +58,7 @@ dv.table(
 
 You can define your own functions like this or use javascript loader plugins like [CustomJS](https://github.com/saml-dev/obsidian-custom-js):
 
-```dataviewjs
+```js
 const isDescendantOf = (parentObjectFile) => (page) => oot.getObjectFileByPath(page.file.path)?.isDescendantOf(parentObjectFile) ?? false
 
 const taskObjectFile = oot.getObjectFileByLink("[[Inbox/Task|Task]]")
