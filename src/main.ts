@@ -15,7 +15,8 @@ import { FileDeletionHandler } from './handlers/FileDeletionHandler';
 import { dissocPath } from 'ramda';
 import { z } from 'zod/v4';
 
-const isExcalidrawFile = (file: TFile) => ExcalidrawAutomate?.isExcalidrawFile(file) ?? false;
+const isExcalidrawFile = (file: TFile) =>
+	typeof ExcalidrawAutomate !== 'undefined' ? ExcalidrawAutomate.isExcalidrawFile(file) : false;
 
 export default class OOTPlugin extends Plugin {
 	settings!: PluginSettings;
