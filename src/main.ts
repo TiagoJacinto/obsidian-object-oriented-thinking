@@ -1,22 +1,37 @@
-import { Notice, Plugin, type TFile } from 'obsidian';
-
+/* eslint-disable sonarjs/cognitive-complexity */
+import { MarkdownView, Notice, Plugin, type TFile } from "obsidian";
+import { dissocPath } from "ramda";
+import { z } from "zod/v4";
+import { FilesCacheService } from "./FilesCache";
+import { FileChangeHandler } from "./handlers/FileChangeHandler";
+import { FileCreationHandler } from "./handlers/FileCreationHandler";
+import { FileDeletionHandler } from "./handlers/FileDeletionHandler";
+import { FileRenameHandler } from "./handlers/FileRenameHandler";
 import {
-	type PluginSettings,
 	DEFAULT_SETTINGS,
+	type ErrorToBeSolved,
 	OOTSettingsTab,
+	type PluginSettings,
 	PluginSettingsSchema,
-} from './Settings';
-import { FilesCacheService } from './FilesCache';
-import { type ObjectFile, type Frontmatter } from './types';
-import { FileCreationHandler } from './handlers/FileCreationHandler';
-import { FileRenameHandler } from './handlers/FileRenameHandler';
-import { FileChangeHandler } from './handlers/FileChangeHandler';
-import { FileDeletionHandler } from './handlers/FileDeletionHandler';
-import { dissocPath } from 'ramda';
-import { z } from 'zod/v4';
+} from "./Settings";
+import type { Frontmatter, ObjectFile } from "./types";
 
 const isExcalidrawFile = (file: TFile) =>
-	typeof ExcalidrawAutomate !== 'undefined' ? ExcalidrawAutomate.isExcalidrawFile(file) : false;
+	typeof ExcalidrawAutomate !== "undefined"
+		? ExcalidrawAutomate.isExcalidrawFile(file)
+		: false;
+
+const errorNotice: Record<NonNullable<ErrorToBeSolved>, string> = {
+	"!isLink": "Update failed: the extended file should be a link",
+	extendsItself: "Update failed: this file should not extend itself",
+	"!parentFile": "Update failed: the extended file no longer exists",
+	extendsIgnoredFile: "Update failed: the extended file is ignored",
+	hasCyclicHierarchy: "Update failed: there is a cyclic hierarchy",
+};
+
+function logError(errorToBeSolved: NonNullable<ErrorToBeSolved>) {
+	new Notice(errorNotice[errorToBeSolved]);
+}
 
 export default class OOTPlugin extends Plugin {
 	settings!: PluginSettings;
@@ -41,6 +56,32 @@ export default class OOTPlugin extends Plugin {
 			await this.filesCacheService.initialize();
 		});
 
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", () => {
+				const file = this.app.workspace.getActiveFile();
+				if (!file) return;
+
+				const inheritanceMetadataPropertyValue =
+					this.getInheritanceMetadataPropertyValue();
+				if (!inheritanceMetadataPropertyValue) return;
+
+				const errorToBeSolved = this.filesCacheService.getFileErrorToBeSolved(
+					file.path,
+				);
+				if (!errorToBeSolved) {
+					this.removeInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
+						inheritanceMetadataPropertyValue,
+					);
+					return;
+				}
+
+				this.addInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
+					inheritanceMetadataPropertyValue,
+				);
+				logError(errorToBeSolved);
+			}),
+		);
+
 		this.setupEventHandlers();
 
 		this.addSettingTab(new OOTSettingsTab(this.app, this));
@@ -54,20 +95,56 @@ export default class OOTPlugin extends Plugin {
 			},
 			getObjectFileByLink: (unparsedLink) => {
 				const linkpath = z
-					.string('Must be a literal link in the format [[Link]]')
-					.regex(/^\[\[.*\]\]$/, 'Must be a literal link in the format [[Link]]')
+					.string("Must be a literal link in the format [[Link]]")
+					.regex(
+						/^\[\[.*\]\]$/,
+						"Must be a literal link in the format [[Link]]",
+					)
 					.and(z.custom<`[[${string}]]`>())
 					.parse(unparsedLink)
-					.replaceAll('[[', '')
-					.replaceAll(']]', '')
-					.split('|')[0]!;
+					.replaceAll("[[", "")
+					.replaceAll("]]", "")
+					.split("|")[0]!;
 
-				const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, '');
+				const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, "");
 				if (!file || !this.isObjectFile(file)) return null;
 
 				return this.toObjectFile(file);
 			},
 		};
+	}
+
+	removeInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
+		inheritanceMetadataPropertyValue: Element,
+	) {
+		inheritanceMetadataPropertyValue.classList.remove(
+			"invalid-parent-extension",
+		);
+	}
+
+	addInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
+		inheritanceMetadataPropertyValue: Element,
+	) {
+		inheritanceMetadataPropertyValue.classList.add("invalid-parent-extension");
+	}
+
+	getInheritanceMetadataPropertyValue() {
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!activeView) return;
+
+		return Array.from(
+			activeView.contentEl.querySelectorAll(".metadata-property"),
+		)
+			.find((prop) => {
+				const inputElement = prop.querySelector(".metadata-property-key-input");
+
+				return (
+					inputElement &&
+					"value" in inputElement &&
+					inputElement.value === this.settings.superPropertyName
+				);
+			})
+			?.querySelector(".metadata-property-value");
 	}
 
 	unload() {
@@ -82,122 +159,185 @@ export default class OOTPlugin extends Plugin {
 		return {
 			...file,
 			isDescendantOf: (unparsedParentFile) => {
-				const parentFile = z.object({ path: z.string() }).parse(unparsedParentFile);
-				const childFileData = this.filesCacheService.getInitializedFileData(file.path);
+				const parentFile = z
+					.object({ path: z.string() })
+					.parse(unparsedParentFile);
+				const childFileData = this.filesCacheService.getInitializedFileData(
+					file.path,
+				);
 				const childHierarchy = childFileData.hierarchy;
 
-				return file.path !== parentFile.path && childHierarchy.includes(parentFile.path);
+				return (
+					file.path !== parentFile.path &&
+					childHierarchy.includes(parentFile.path)
+				);
 			},
 		};
 	}
 
 	setupEventHandlers() {
 		this.registerEvent(
-			this.app.vault.on('create', (file) => this.fileCreationHandler.execute({ file })),
+			this.app.vault.on("create", (file) =>
+				this.fileCreationHandler.execute({ file }),
+			),
 		);
 		this.registerEvent(
-			this.app.vault.on('rename', (file, oldPath) =>
+			this.app.vault.on("rename", (file, oldPath) =>
 				this.fileRenameHandler.execute({ file, oldPath }),
 			),
 		);
 		this.registerEvent(
-			this.app.vault.on('modify', (file) => this.fileChangeHandler.execute({ file })),
+			this.app.vault.on("modify", (file) =>
+				this.fileChangeHandler.execute({ file }),
+			),
 		);
 		this.registerEvent(
-			this.app.vault.on('delete', (file) => this.fileDeletionHandler.execute({ file })),
+			this.app.vault.on("delete", (file) =>
+				this.fileDeletionHandler.execute({ file }),
+			),
 		);
 	}
 
-	async updateObjectFileHierarchy(file: TFile) {
+	async processObjectFileHierarchy({
+		file,
+		onInvalid,
+		onSuccess,
+	}: {
+		file: TFile;
+		onInvalid: (errorToBeSolved?: ErrorToBeSolved) => Promise<void>;
+		onSuccess?: (parentFile: TFile) => void;
+	}) {
+		const isActiveFile = () => this.app.workspace.getActiveFile() === file;
+
+		await this.app.fileManager.processFrontMatter(
+			file,
+			async (frontmatter: Frontmatter) => {
+				const parentFrontmatterLink =
+					frontmatter[this.settings.superPropertyName];
+
+				if (!parentFrontmatterLink) {
+					await onInvalid();
+					return;
+				}
+
+				const isLink =
+					typeof parentFrontmatterLink === "string" &&
+					parentFrontmatterLink.startsWith("[[") &&
+					parentFrontmatterLink.endsWith("]]");
+				if (!isLink) {
+					if (isActiveFile()) logError("!isLink");
+
+					await onInvalid("!isLink");
+					return;
+				}
+
+				const parentLinkPath = parentFrontmatterLink
+					.replaceAll("[[", "")
+					.replaceAll("]]", "")
+					.split("|")[0]!;
+
+				const extendsItself = parentLinkPath === file.basename;
+				if (extendsItself) {
+					if (isActiveFile()) logError("extendsItself");
+
+					await onInvalid("extendsItself");
+					return;
+				}
+
+				const parentFile = this.app.metadataCache.getFirstLinkpathDest(
+					parentLinkPath,
+					file.path,
+				);
+				if (!parentFile) {
+					if (isActiveFile()) logError("!parentFile");
+
+					await onInvalid("!parentFile");
+					return;
+				}
+
+				const extendsIgnoredFile = this.shouldFileBeIgnored(parentFile);
+				if (extendsIgnoredFile) {
+					if (isActiveFile()) logError("extendsIgnoredFile");
+
+					await onInvalid("extendsIgnoredFile");
+					return;
+				}
+
+				const parentFileData = this.filesCacheService.getInitializedFileData(
+					parentFile.path,
+				);
+
+				const hasCyclicHierarchy = parentFileData.hierarchy.includes(file.path);
+				if (hasCyclicHierarchy) {
+					if (isActiveFile()) logError("hasCyclicHierarchy");
+
+					await onInvalid("hasCyclicHierarchy");
+					return;
+				}
+
+				onSuccess?.(parentFile);
+
+				this.filesCacheService.addFileExtendedBy(parentFile, file);
+				await this.addObjectPrefixToHierarchy(file, parentFileData.hierarchy);
+				this.filesCacheService.setFileExtends(file.path, parentFile);
+				await this.filesCacheService.removeFileErrorToBeSolved(file);
+
+				await this.saveSettings();
+			},
+		);
+	}
+
+	updateObjectFileHierarchy(file: TFile) {
 		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 
-		await this.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) => {
-			const removeExtension = () => {
+		return this.processObjectFileHierarchy({
+			file,
+			onInvalid: async (errorToBeSolved) => {
 				this.filesCacheService.setFileHierarchy(file.path, [file.path]);
+				this.filesCacheService.setFileErrorToBeSolved(
+					file.path,
+					errorToBeSolved,
+				);
 
 				const parentPath = fileData.extends;
 				if (parentPath) {
 					this.filesCacheService.setFileExtends(file.path, null);
 					this.filesCacheService.removeFileExtendedBy(parentPath, file.path);
 				}
-			};
+				await this.saveSettings();
 
-			const parentFrontmatterLink = frontmatter[this.settings.superPropertyName];
+				const inheritanceMetadataPropertyValue =
+					this.getInheritanceMetadataPropertyValue();
+				if (!inheritanceMetadataPropertyValue) return;
 
-			if (!parentFrontmatterLink) {
-				removeExtension();
-				return;
-			}
+				this.addInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
+					inheritanceMetadataPropertyValue,
+				);
+			},
+			onSuccess: (parentFile) => {
+				const inheritanceMetadataPropertyValue =
+					this.getInheritanceMetadataPropertyValue();
+				if (!inheritanceMetadataPropertyValue) return;
 
-			const isLink =
-				typeof parentFrontmatterLink === 'string' &&
-				parentFrontmatterLink.startsWith('[[') &&
-				parentFrontmatterLink.endsWith(']]');
-			if (!isLink) {
-				new Notice('Update failed: the extended file should be a link');
-				frontmatter[this.settings.superPropertyName] = null;
-				removeExtension();
-				return;
-			}
+				this.removeInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
+					inheritanceMetadataPropertyValue,
+				);
 
-			const parentLinkPath = parentFrontmatterLink
-				.replaceAll('[[', '')
-				.replaceAll(']]', '')
-				.split('|')[0]!;
+				const oldParentPath = fileData.extends;
+				if (oldParentPath) {
+					const extendsHasChanged = oldParentPath !== parentFile.path;
+					if (!extendsHasChanged) return;
 
-			const extendsItself = parentLinkPath === file.basename;
-			if (extendsItself) {
-				new Notice('Update failed: this file should not extend itself');
-				frontmatter[this.settings.superPropertyName] = null;
-				removeExtension();
-				return;
-			}
-
-			const parentFile = this.app.metadataCache.getFirstLinkpathDest(parentLinkPath, file.path);
-			if (!parentFile) {
-				new Notice('Update failed: the extended file no longer exists');
-				frontmatter[this.settings.superPropertyName] = null;
-				removeExtension();
-				return;
-			}
-
-			const extendsIgnoredFile = this.shouldFileBeIgnored(parentFile);
-			if (extendsIgnoredFile) {
-				new Notice('Update failed: the extended file is ignored');
-				frontmatter[this.settings.superPropertyName] = null;
-				removeExtension();
-				return;
-			}
-
-			const parentFileData = this.filesCacheService.getInitializedFileData(parentFile.path);
-
-			const hasCyclicHierarchy = parentFileData.hierarchy.includes(file.path);
-			if (hasCyclicHierarchy) {
-				new Notice('Update failed: there is a cyclic hierarchy');
-				frontmatter[this.settings.superPropertyName] = null;
-				removeExtension();
-				return;
-			}
-
-			const oldParentPath = fileData.extends;
-			if (oldParentPath) {
-				const extendsHasChanged = oldParentPath !== parentFile.path;
-				if (!extendsHasChanged) return;
-
-				this.filesCacheService.removeFileExtendedBy(oldParentPath, file.path);
-			}
-
-			this.filesCacheService.addFileExtendedBy(parentFile, file);
-
-			await this.addObjectPrefixToHierarchy(file, parentFileData.hierarchy);
-
-			this.filesCacheService.setFileExtends(file.path, parentFile);
+					this.filesCacheService.removeFileExtendedBy(oldParentPath, file.path);
+				}
+			},
 		});
-
-		await this.saveSettings();
 	}
 
-	private async addObjectPrefixToHierarchy(file: TFile, parentHierarchy: string[]) {
+	private async addObjectPrefixToHierarchy(
+		file: TFile,
+		parentHierarchy: string[],
+	) {
 		const fileData = this.filesCacheService.getInitializedFileData(file.path);
 
 		const newHierarchy = [...parentHierarchy, file.path];
@@ -218,10 +358,10 @@ export default class OOTPlugin extends Plugin {
 	shouldFileBeIgnored(file: TFile) {
 		if (
 			!file.path ||
-			file.extension !== 'md' ||
+			file.extension !== "md" ||
 			// Canvas files are created as 'Canvas.md',
 			// so the plugin will update "frontmatter" and break the file when it gets created
-			file.name === 'Canvas.md' ||
+			file.name === "Canvas.md" ||
 			isExcalidrawFile(file)
 		) {
 			return true;
@@ -251,12 +391,13 @@ export default class OOTPlugin extends Plugin {
 		if (result.success) return result.data;
 
 		for (const issue of result.error.issues) {
-			const isFileDataIssue = issue.code === 'invalid_type' && issue.path[0] === 'files';
+			const isFileDataIssue =
+				issue.code === "invalid_type" && issue.path[0] === "files";
 
 			if (isFileDataIssue) {
 				// remove file from data so that it can be recreated
 				data = dissocPath(
-					issue.path.slice(0, 2).filter((p) => typeof p !== 'symbol'),
+					issue.path.slice(0, 2).filter((p) => typeof p !== "symbol"),
 					data,
 				);
 			}

@@ -14,3 +14,7 @@ If your plugin does not need CSS, delete this file.
 .setting-item-control.setting-error input {
 	border-color: #990000;
 }
+
+.invalid-parent-extension {
+	text-decoration: underline wavy red;
+}

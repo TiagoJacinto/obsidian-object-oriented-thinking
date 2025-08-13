@@ -1,12 +1,15 @@
-import { type App, type SearchComponent, PluginSettingTab, Setting } from 'obsidian';
-
-import type OOTPlugin from './main';
-
-import { FolderSuggest } from './suggesters/FolderSuggester';
-import { type Frontmatter } from './types';
-import { filter } from 'ramda';
-import { z } from 'zod/v4';
-import deepEqual from 'fast-deep-equal';
+import deepEqual from "fast-deep-equal";
+import {
+	type App,
+	PluginSettingTab,
+	type SearchComponent,
+	Setting,
+} from "obsidian";
+import { filter } from "ramda";
+import { z } from "zod/v4";
+import type OOTPlugin from "./main";
+import { FolderSuggest } from "./suggesters/FolderSuggester";
+import { type Frontmatter } from "./types";
 
 const onlyUniqueArray = <T>(value: T, index: number, self: T[]) => {
 	return self.findIndex((v) => deepEqual(v, value)) === index;
@@ -25,18 +28,30 @@ export const PluginSettingsSchema = z.object({
 			hierarchy: z.array(z.string()),
 			updatedAt: z.string().optional(),
 			softExcludedAt: z.string().optional(),
+			errorToBeSolved: z
+				.union([
+					z.literal("!isLink"),
+					z.literal("extendsItself"),
+					z.literal("!parentFile"),
+					z.literal("extendsIgnoredFile"),
+					z.literal("hasCyclicHierarchy"),
+				])
+				.optional(),
 		}),
 	),
 });
 
 export type PluginSettings = z.infer<typeof PluginSettingsSchema>;
 
+export type ErrorToBeSolved =
+	PluginSettings["files"][number]["errorToBeSolved"];
+
 export const DEFAULT_SETTINGS: PluginSettings = {
 	ignoredFolders: [],
 	files: {},
 	minMinutesBetweenSaves: 0,
 	minSoftExclusionDays: 14,
-	superPropertyName: 'extends',
+	superPropertyName: "extends",
 };
 
 type SearchAndRemoveArgs = {
@@ -74,11 +89,11 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 	addExcludedFoldersSetting() {
 		this.doSearchAndRemoveList({
-			name: 'Folder to exclude of all updates',
+			name: "Folder to exclude of all updates",
 
 			currentList: this.plugin.settings.ignoredFolders,
 			description:
-				'Any file updated in this folder will not trigger an updated and created update.',
+				"Any file updated in this folder will not trigger an updated and created update.",
 
 			setValue: (newValue) => {
 				this.plugin.settings.ignoredFolders = newValue;
@@ -88,7 +103,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 	addTimeForSoftExclusion() {
 		new Setting(this.containerEl)
-			.setName('Minimum number of days for excluding files')
+			.setName("Minimum number of days for excluding files")
 			.addSlider((slider) =>
 				slider
 					.setLimits(0, 120, 1)
@@ -103,8 +118,8 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 	addTimeBetweenUpdates() {
 		new Setting(this.containerEl)
-			.setName('Minimum number of minutes between update')
-			.setDesc('If your files are updating too often, increase this.')
+			.setName("Minimum number of minutes between update")
+			.setDesc("If your files are updating too often, increase this.")
 			.addSlider((slider) =>
 				slider
 					.setLimits(0, 30, 1)
@@ -119,29 +134,37 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 	addSuperObjectPropertyName() {
 		new Setting(this.containerEl)
-			.setName('Super object property name')
-			.setDesc('The name of the super object property.')
+			.setName("Super object property name")
+			.setDesc("The name of the super object property.")
 			.addText((text) =>
 				text
-					.setPlaceholder('extends')
+					.setPlaceholder("extends")
 					.setValue(this.plugin.settings.superPropertyName)
 					.onChange(async (value) => {
-						const previousSuperPropertyName = this.plugin.settings.superPropertyName;
+						const previousSuperPropertyName =
+							this.plugin.settings.superPropertyName;
 						const newSuperPropertyName = value;
 
 						if (previousSuperPropertyName === newSuperPropertyName) return;
 
-						const extendingFiles = filter((f) => Boolean(f.extends), this.plugin.settings.files);
+						const extendingFiles = filter(
+							(f) => Boolean(f.extends),
+							this.plugin.settings.files,
+						);
 
 						for (const filePath of Object.keys(extendingFiles)) {
 							const file = this.app.vault.getFileByPath(filePath);
 							if (!file) continue;
 
-							await this.app.fileManager.processFrontMatter(file, (frontmatter: Frontmatter) => {
-								const superPropertyValue = frontmatter[previousSuperPropertyName];
-								delete frontmatter[previousSuperPropertyName];
-								frontmatter[newSuperPropertyName] = superPropertyValue;
-							});
+							await this.app.fileManager.processFrontMatter(
+								file,
+								(frontmatter: Frontmatter) => {
+									const superPropertyValue =
+										frontmatter[previousSuperPropertyName];
+									delete frontmatter[previousSuperPropertyName];
+									frontmatter[newSuperPropertyName] = superPropertyValue;
+								},
+							);
 						}
 
 						this.plugin.settings.superPropertyName = value;
@@ -150,7 +173,12 @@ export class OOTSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	doSearchAndRemoveList({ name, currentList, description, setValue }: SearchAndRemoveArgs) {
+	doSearchAndRemoveList({
+		name,
+		currentList,
+		description,
+		setValue,
+	}: SearchAndRemoveArgs) {
 		let searchInput: SearchComponent | undefined;
 		new Setting(this.containerEl)
 			.setName(name)
@@ -158,14 +186,14 @@ export class OOTSettingsTab extends PluginSettingTab {
 			.addSearch((cb) => {
 				searchInput = cb;
 				new FolderSuggest(this.app, cb.inputEl);
-				cb.setPlaceholder('Example: folder1/folder2');
+				cb.setPlaceholder("Example: folder1/folder2");
 				// @ts-ignore
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-				cb.containerEl.addClass('time-search');
+				cb.containerEl.addClass("time-search");
 			})
 			.addButton((cb) => {
-				cb.setIcon('plus');
-				cb.setTooltip('Add folder');
+				cb.setIcon("plus");
+				cb.setTooltip("Add folder");
 				cb.onClick(async () => {
 					if (!searchInput) {
 						return;
@@ -179,14 +207,14 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 					setValue([...currentList, newFolder].filter(onlyUniqueArray));
 					await this.saveSettings();
-					searchInput.setValue('');
+					searchInput.setValue("");
 					this.display();
 				});
 			});
 
 		for (const ignoredFolder of currentList) {
 			new Setting(this.containerEl).setName(ignoredFolder).addButton((button) =>
-				button.setButtonText('Remove').onClick(async () => {
+				button.setButtonText("Remove").onClick(async () => {
 					setValue(currentList.filter((value) => value !== ignoredFolder));
 
 					const filesToInclude = this.plugin.app.vault

@@ -1,8 +1,8 @@
-import { type TFile, type TAbstractFile, Component, Notice } from 'obsidian';
-import type OOTPlugin from './main';
-import { formatDate, parseDate } from './utils';
-import { type Frontmatter } from './types';
-import * as time from 'date-fns';
+import * as time from "date-fns";
+import { Component, type TAbstractFile, type TFile } from "obsidian";
+import type OOTPlugin from "./main";
+import { type ErrorToBeSolved } from "./Settings";
+import { formatDate, parseDate } from "./utils";
 
 export class FilesCacheService extends Component {
 	constructor(private readonly plugin: OOTPlugin) {
@@ -50,110 +50,27 @@ export class FilesCacheService extends Component {
 	}
 
 	async initializeFileData(file: TFile) {
-		await this.plugin.app.fileManager.processFrontMatter(file, async (frontmatter: Frontmatter) => {
-			const parentFrontmatterLink = frontmatter[this.plugin.settings.superPropertyName];
-
-			if (!parentFrontmatterLink) {
+		await this.plugin.processObjectFileHierarchy({
+			file,
+			onInvalid: async (errorToBeSolved) => {
 				this.plugin.settings.files[file.path] = {
 					hierarchy: [file.path],
 					extendedBy: [],
-				};
-				return;
-			}
-
-			const isLink =
-				typeof parentFrontmatterLink === 'string' &&
-				parentFrontmatterLink.startsWith('[[') &&
-				parentFrontmatterLink.endsWith(']]');
-			if (!isLink) {
-				new Notice('Update failed: the extended file should be a link');
-				frontmatter[this.plugin.settings.superPropertyName] = null;
-
-				this.plugin.settings.files[file.path] = {
-					hierarchy: [file.path],
-					extendedBy: [],
+					errorToBeSolved,
 				};
 
-				return;
-			}
-
-			const parentLinkPath = parentFrontmatterLink
-				.replaceAll('[[', '')
-				.replaceAll(']]', '')
-				.split('|')[0]!;
-
-			const extendsItself = parentLinkPath === file.basename;
-			if (extendsItself) {
-				new Notice('Update failed: this file should not extend itself');
-				frontmatter[this.plugin.settings.superPropertyName] = null;
-
-				this.plugin.settings.files[file.path] = {
-					hierarchy: [file.path],
-
-					extendedBy: [],
-				};
-
-				return;
-			}
-
-			const parentFile = this.plugin.app.metadataCache.getFirstLinkpathDest(
-				parentLinkPath,
-				file.path,
-			);
-			if (!parentFile) {
-				new Notice('Update failed: the extended file no longer exists');
-				frontmatter[this.plugin.settings.superPropertyName] = null;
-
-				this.plugin.settings.files[file.path] = {
-					hierarchy: [file.path],
-
-					extendedBy: [],
-				};
-
-				return;
-			}
-
-			const extendsIgnoredFile = this.plugin.shouldFileBeIgnored(parentFile);
-			if (extendsIgnoredFile) {
-				new Notice('Update failed: the extended file is ignored');
-				frontmatter[this.plugin.settings.superPropertyName] = null;
-				this.plugin.settings.files[file.path] = {
-					hierarchy: [file.path],
-
-					extendedBy: [],
-				};
-				return;
-			}
-
-			const parentFileData = await this.getOrInitializeFileData(parentFile);
-			const hasCyclicHierarchy = parentFileData.hierarchy.includes(file.path);
-			if (hasCyclicHierarchy) {
-				new Notice('Update failed: there is a cyclic hierarchy');
-				frontmatter[this.plugin.settings.superPropertyName] = null;
-				this.plugin.settings.files[file.path] = {
-					hierarchy: [file.path],
-
-					extendedBy: [],
-				};
-				return;
-			}
-
-			this.plugin.settings.files[file.path] = {
-				hierarchy: [...parentFileData.hierarchy, file.path],
-
-				extends: parentFile.path,
-				extendedBy: [],
-			};
-
-			this.plugin.filesCacheService.addFileExtendedBy(parentFile, file);
+				await this.plugin.saveSettings();
+			},
 		});
+
+		// check if there are any files that have errors to be solved
+		// notify the user that there are errors to be solved
+		// and that he can check all the files with errors in the "Object Oriented Thinking Errors List"
 	}
 
-	private async getOrInitializeFileData(file: TFile) {
-		if (this.fileDataExists(file.path)) return this.plugin.settings.files[file.path]!;
-
-		await this.initializeFileData(file);
-		return this.plugin.settings.files[file.path]!;
+	getFileErrorToBeSolved(path: string) {
+		const fileData = this.getInitializedFileData(path);
+		return fileData.errorToBeSolved;
 	}
 
 	getInitializedFileData(path: string) {
@@ -169,6 +86,22 @@ export class FilesCacheService extends Component {
 			...fileData,
 			updatedAt: formatDate(new Date()),
 		};
+	}
+
+	setFileErrorToBeSolved(path: string, errorToBeSolved: ErrorToBeSolved) {
+		const fileData = this.getInitializedFileData(path);
+
+		this.plugin.settings.files[path] = {
+			...fileData,
+			errorToBeSolved,
+		};
+	}
+
+	async removeFileErrorToBeSolved(file: TFile) {
+		if (!(file.path in this.plugin.settings.files))
+			throw new Error(`File data of ${file.path} not found`);
+
+		delete this.plugin.settings.files[file.path]!.errorToBeSolved;
 	}
 
 	includeFile(path: string) {

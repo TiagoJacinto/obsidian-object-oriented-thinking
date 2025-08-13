@@ -1,11 +1,13 @@
-import { type TFile } from 'obsidian';
-import { Handler } from 'src/Handler';
-import * as time from 'date-fns';
-import { parseDate } from 'src/utils';
+import * as time from "date-fns";
+import { type TFile } from "obsidian";
+import { Handler } from "src/Handler";
+import { parseDate } from "src/utils";
 
 export class FileChangeHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
-		const fileData = this.plugin.filesCacheService.getInitializedFileData(file.path);
+		const fileData = this.plugin.filesCacheService.getInitializedFileData(
+			file.path,
+		);
 
 		if (!this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt)) return;
 

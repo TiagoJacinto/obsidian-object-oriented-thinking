@@ -14,13 +14,11 @@ Scenario: File extends itself
 Given a file that extends itself
 When I update the file
 Then I should see an error notifying me that the file should not extend itself
-And the extends property should be empty
 
 Scenario: File extends ignored file
 Given a file that extends an ignored file
 When I update the file
 Then I should see an error notifying me that the file should not extend an ignored file
-And the extends property should be empty
 
 Scenario: File references itself indirectly
 Given the files and corresponding object hierarchies:
@@ -30,7 +28,6 @@ Given the files and corresponding object hierarchies:
  | PersianCat  | Animal/Cat/PersianCat  |
 When I extend "Animal" with "PersianCat"
 Then I should see an error notifying me that the file should not extend from "PersianCat" because it references itself
-And the extends property should be empty
 
 Scenario: Updating a parent file should update descendant object hierarchy
 Given the files and corresponding object hierarchies:
