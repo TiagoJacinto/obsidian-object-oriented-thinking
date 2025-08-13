@@ -13,9 +13,9 @@
 	},
 	"license": "MIT",
 	"devDependencies": {
+		"@biomejs/biome": "2.1.4",
 		"@tiagojacinto/eslint-config": "0.5.10",
 		"@tiagojacinto/gitignore-config": "0.0.2",
-		"@tiagojacinto/prettier-config": "0.1.1",
 		"@tiagojacinto/typescript-config": "0.1.0",
 		"@tiagojacinto/vscode-config": "0.0.5",
 		"@total-typescript/ts-reset": "^0.6.1",
@@ -26,7 +26,6 @@
 		"eslint": "9.22.0",
 		"obsidian": "1.8.7",
 		"obsidian-dev-utils": "^26.11.0",
-		"prettier": "3.5.3",
 		"tslib": "2.4.0",
 		"type-fest": "^4.37.0",
 		"typescript": "^5.8.3",

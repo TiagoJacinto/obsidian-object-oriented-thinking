@@ -24,15 +24,15 @@ importers:
         specifier: ^3.25.67
         version: 3.25.67
     devDependencies:
+      '@biomejs/biome':
+        specifier: 2.1.4
+        version: 2.1.4
       '@tiagojacinto/eslint-config':
         specifier: 0.5.10
         version: 0.5.10(@babel/traverse@7.27.4)(@sveltejs/vite-plugin-svelte@5.1.0(svelte@5.34.5)(vite@6.3.5(@types/node@16.18.126)(jiti@2.4.2)(sass-embedded@1.89.2)(sass@1.89.2)(tsx@4.20.3)(yaml@2.8.0)))(@typescript-eslint/eslint-plugin@8.34.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.3))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.3))(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.3))(jiti@2.4.2)(nx@20.8.2)(svelte@5.34.5)(ts-api-utils@2.1.0(typescript@5.8.3))(typescript@5.8.3)(vite@6.3.5(@types/node@16.18.126)(jiti@2.4.2)(sass-embedded@1.89.2)(sass@1.89.2)(tsx@4.20.3)(yaml@2.8.0))
       '@tiagojacinto/gitignore-config':
         specifier: 0.0.2
         version: 0.0.2(@types/node@16.18.126)
-      '@tiagojacinto/prettier-config':
-        specifier: 0.1.1
-        version: 0.1.1(prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5))(prettier-plugin-tailwindcss@0.6.12(prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5))(prettier@3.5.3))
       '@tiagojacinto/typescript-config':
         specifier: 0.1.0
         version: 0.1.0
@@ -63,9 +63,6 @@ importers:
       obsidian-dev-utils:
         specifier: ^26.11.0
         version: 26.29.2(@babel/core@7.27.4)(@codemirror/state@6.5.2)(@codemirror/view@6.37.2)(@pixi/core@7.4.3)(@pixi/display@7.4.3(@pixi/core@7.4.3))(@typescript-eslint/utils@8.34.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(picomatch@4.0.2)(postcss-load-config@3.1.4(postcss@8.5.6))(sass-embedded@1.89.2)(svelte@5.34.5)
-      prettier:
-        specifier: 3.5.3
-        version: 3.5.3
       tslib:
         specifier: 2.4.0
         version: 2.4.0
@@ -705,6 +702,59 @@ packages:
     resolution: {integrity: sha512-9jdYsSj7YWGixeVok7xZSV+OHpOxMBEcuw+zPHj2462LS812Xq2Vs5Kk00PoFjVXolgQm6naXDG1Wa+x445BPQ==}
     peerDependencies:
       typescript: '>=4.5.2'
+
+  '@biomejs/biome@2.1.4':
+    resolution: {integrity: sha512-QWlrqyxsU0FCebuMnkvBIkxvPqH89afiJzjMl+z67ybutse590jgeaFdDurE9XYtzpjRGTI1tlUZPGWmbKsElA==}
+    engines: {node: '>=14.21.3'}
+    hasBin: true
+
+  '@biomejs/cli-darwin-arm64@2.1.4':
+    resolution: {integrity: sha512-sCrNENE74I9MV090Wq/9Dg7EhPudx3+5OiSoQOkIe3DLPzFARuL1dOwCWhKCpA3I5RHmbrsbNSRfZwCabwd8Qg==}
+    engines: {node: '>=14.21.3'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@biomejs/cli-darwin-x64@2.1.4':
+    resolution: {integrity: sha512-gOEICJbTCy6iruBywBDcG4X5rHMbqCPs3clh3UQ+hRKlgvJTk4NHWQAyHOXvaLe+AxD1/TNX1jbZeffBJzcrOw==}
+    engines: {node: '>=14.21.3'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@biomejs/cli-linux-arm64-musl@2.1.4':
+    resolution: {integrity: sha512-nYr7H0CyAJPaLupFE2cH16KZmRC5Z9PEftiA2vWxk+CsFkPZQ6dBRdcC6RuS+zJlPc/JOd8xw3uCCt9Pv41WvQ==}
+    engines: {node: '>=14.21.3'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@biomejs/cli-linux-arm64@2.1.4':
+    resolution: {integrity: sha512-juhEkdkKR4nbUi5k/KRp1ocGPNWLgFRD4NrHZSveYrD6i98pyvuzmS9yFYgOZa5JhaVqo0HPnci0+YuzSwT2fw==}
+    engines: {node: '>=14.21.3'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@biomejs/cli-linux-x64-musl@2.1.4':
+    resolution: {integrity: sha512-lvwvb2SQQHctHUKvBKptR6PLFCM7JfRjpCCrDaTmvB7EeZ5/dQJPhTYBf36BE/B4CRWR2ZiBLRYhK7hhXBCZAg==}
+    engines: {node: '>=14.21.3'}
+    cpu: [x64]
+    os: [linux]
+
+  '@biomejs/cli-linux-x64@2.1.4':
+    resolution: {integrity: sha512-Eoy9ycbhpJVYuR+LskV9s3uyaIkp89+qqgqhGQsWnp/I02Uqg2fXFblHJOpGZR8AxdB9ADy87oFVxn9MpFKUrw==}
+    engines: {node: '>=14.21.3'}
+    cpu: [x64]
+    os: [linux]
+
+  '@biomejs/cli-win32-arm64@2.1.4':
+    resolution: {integrity: sha512-3WRYte7orvyi6TRfIZkDN9Jzoogbv+gSvR+b9VOXUg1We1XrjBg6WljADeVEaKTvOcpVdH0a90TwyOQ6ue4fGw==}
+    engines: {node: '>=14.21.3'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@biomejs/cli-win32-x64@2.1.4':
+    resolution: {integrity: sha512-tBc+W7anBPSFXGAoQW+f/+svkpt8/uXfRwDzN1DvnatkRMt16KIYpEi/iw8u9GahJlFv98kgHcIrSsZHZTR0sw==}
+    engines: {node: '>=14.21.3'}
+    cpu: [x64]
+    os: [win32]
 
   '@braintree/sanitize-url@7.1.1':
     resolution: {integrity: sha512-i1L7noDNxtFyL5DmZafWy1wRVhGehQmzZaz1HiN5e7iylJMSZR7ekOV7NsIqa5qBldlLrsKv4HbgFUVlQrz8Mw==}
@@ -2065,12 +2115,6 @@ packages:
   '@tiagojacinto/gitignore-config@0.0.2':
     resolution: {integrity: sha512-t4NImm81Unn98FZEGjqr+F1j5pezY5w7JSbdckXdba1RYhBpbuL3tFN5bqFjK1biuNESTC8qnpHjY7AZPD2CPw==}
     hasBin: true
-
-  '@tiagojacinto/prettier-config@0.1.1':
-    resolution: {integrity: sha512-zvJPyEL1CZRIojk4ZcCXlW8WLsmmpdbuDUV7y3M/5YzxedakTHgB59HB/f+tSYd+6rc3S9ndep0WUglLfdDTFg==}
-    peerDependencies:
-      prettier-plugin-svelte: 3.x
-      prettier-plugin-tailwindcss: 0.x
 
   '@tiagojacinto/typescript-config@0.1.0':
     resolution: {integrity: sha512-nf18N1Kqwlg5MLfzS/b/JaBePnfF4ShvW1CLsGpjEmLAclgqRfa98YNubfQXm0taF6XCPrb9t1d01uA7bno5vw==}
@@ -4867,72 +4911,6 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-plugin-svelte@3.4.0:
-    resolution: {integrity: sha512-pn1ra/0mPObzqoIQn/vUTR3ZZI6UuZ0sHqMK5x2jMLGrs53h0sXhkVuDcrlssHwIMk7FYrMjHBPoUSyyEEDlBQ==}
-    peerDependencies:
-      prettier: ^3.0.0
-      svelte: ^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0
-
-  prettier-plugin-tailwindcss@0.6.12:
-    resolution: {integrity: sha512-OuTQKoqNwV7RnxTPwXWzOFXy6Jc4z8oeRZYGuMpRyG3WbuR3jjXdQFK8qFBMBx8UHWdHrddARz2fgUenild6aw==}
-    engines: {node: '>=14.21.3'}
-    peerDependencies:
-      '@ianvs/prettier-plugin-sort-imports': '*'
-      '@prettier/plugin-pug': '*'
-      '@shopify/prettier-plugin-liquid': '*'
-      '@trivago/prettier-plugin-sort-imports': '*'
-      '@zackad/prettier-plugin-twig': '*'
-      prettier: ^3.0
-      prettier-plugin-astro: '*'
-      prettier-plugin-css-order: '*'
-      prettier-plugin-import-sort: '*'
-      prettier-plugin-jsdoc: '*'
-      prettier-plugin-marko: '*'
-      prettier-plugin-multiline-arrays: '*'
-      prettier-plugin-organize-attributes: '*'
-      prettier-plugin-organize-imports: '*'
-      prettier-plugin-sort-imports: '*'
-      prettier-plugin-style-order: '*'
-      prettier-plugin-svelte: '*'
-    peerDependenciesMeta:
-      '@ianvs/prettier-plugin-sort-imports':
-        optional: true
-      '@prettier/plugin-pug':
-        optional: true
-      '@shopify/prettier-plugin-liquid':
-        optional: true
-      '@trivago/prettier-plugin-sort-imports':
-        optional: true
-      '@zackad/prettier-plugin-twig':
-        optional: true
-      prettier-plugin-astro:
-        optional: true
-      prettier-plugin-css-order:
-        optional: true
-      prettier-plugin-import-sort:
-        optional: true
-      prettier-plugin-jsdoc:
-        optional: true
-      prettier-plugin-marko:
-        optional: true
-      prettier-plugin-multiline-arrays:
-        optional: true
-      prettier-plugin-organize-attributes:
-        optional: true
-      prettier-plugin-organize-imports:
-        optional: true
-      prettier-plugin-sort-imports:
-        optional: true
-      prettier-plugin-style-order:
-        optional: true
-      prettier-plugin-svelte:
-        optional: true
-
-  prettier@3.5.3:
-    resolution: {integrity: sha512-QQtaxnoDJeAkDvDKWCLiwIXkTgRhwYDEQCghU9Z6q03iyek/rxRh/2lC3HB7P8sWT2xC/y5JDctPLBIGzHKbhw==}
-    engines: {node: '>=14'}
-    hasBin: true
-
   pretty-format@29.7.0:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -6671,6 +6649,41 @@ snapshots:
     dependencies:
       typescript: 5.8.3
 
+  '@biomejs/biome@2.1.4':
+    optionalDependencies:
+      '@biomejs/cli-darwin-arm64': 2.1.4
+      '@biomejs/cli-darwin-x64': 2.1.4
+      '@biomejs/cli-linux-arm64': 2.1.4
+      '@biomejs/cli-linux-arm64-musl': 2.1.4
+      '@biomejs/cli-linux-x64': 2.1.4
+      '@biomejs/cli-linux-x64-musl': 2.1.4
+      '@biomejs/cli-win32-arm64': 2.1.4
+      '@biomejs/cli-win32-x64': 2.1.4
+
+  '@biomejs/cli-darwin-arm64@2.1.4':
+    optional: true
+
+  '@biomejs/cli-darwin-x64@2.1.4':
+    optional: true
+
+  '@biomejs/cli-linux-arm64-musl@2.1.4':
+    optional: true
+
+  '@biomejs/cli-linux-arm64@2.1.4':
+    optional: true
+
+  '@biomejs/cli-linux-x64-musl@2.1.4':
+    optional: true
+
+  '@biomejs/cli-linux-x64@2.1.4':
+    optional: true
+
+  '@biomejs/cli-win32-arm64@2.1.4':
+    optional: true
+
+  '@biomejs/cli-win32-x64@2.1.4':
+    optional: true
+
   '@braintree/sanitize-url@7.1.1': {}
 
   '@bufbuild/protobuf@2.6.0': {}
@@ -7999,12 +8012,6 @@ snapshots:
       '@inquirer/prompts': 7.4.0(@types/node@16.18.126)
     transitivePeerDependencies:
       - '@types/node'
-
-  '@tiagojacinto/prettier-config@0.1.1(prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5))(prettier-plugin-tailwindcss@0.6.12(prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5))(prettier@3.5.3))':
-    dependencies:
-      prettier-plugin-svelte: 3.4.0(prettier@3.5.3)(svelte@5.34.5)
-      prettier-plugin-tailwindcss: 0.6.12(prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5))(prettier@3.5.3)
-      ramda: 0.30.1
 
   '@tiagojacinto/typescript-config@0.1.0': {}
 
@@ -11467,19 +11474,6 @@ snapshots:
   preact@10.26.9: {}
 
   prelude-ls@1.2.1: {}
-
-  prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5):
-    dependencies:
-      prettier: 3.5.3
-      svelte: 5.34.5
-
-  prettier-plugin-tailwindcss@0.6.12(prettier-plugin-svelte@3.4.0(prettier@3.5.3)(svelte@5.34.5))(prettier@3.5.3):
-    dependencies:
-      prettier: 3.5.3
-    optionalDependencies:
-      prettier-plugin-svelte: 3.4.0(prettier@3.5.3)(svelte@5.34.5)
-
-  prettier@3.5.3: {}
 
   pretty-format@29.7.0:
     dependencies:
