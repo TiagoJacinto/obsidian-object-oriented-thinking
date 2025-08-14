@@ -1,5 +1,11 @@
 /* eslint-disable sonarjs/cognitive-complexity */
-import { MarkdownView, Notice, Plugin, type TFile } from "obsidian";
+import {
+	MarkdownView,
+	Notice,
+	Plugin,
+	type TFile,
+	type WorkspaceLeaf,
+} from "obsidian";
 import { dissocPath } from "ramda";
 import { z } from "zod/v4";
 import { FilesCacheService } from "./FilesCache";
@@ -15,32 +21,65 @@ import {
 	PluginSettingsSchema,
 } from "./Settings";
 import type { Frontmatter, ObjectFile } from "./types";
+import {
+	INHERITANCE_ERROR_VIEW_TYPE,
+	InheritanceErrorsView,
+} from "./views/InheritanceErrorsView";
 
 const isExcalidrawFile = (file: TFile) =>
 	typeof ExcalidrawAutomate !== "undefined"
 		? ExcalidrawAutomate.isExcalidrawFile(file)
 		: false;
 
-const errorNotice: Record<NonNullable<ErrorToBeSolved>, string> = {
-	"!isLink": "Update failed: the extended file should be a link",
-	extendsItself: "Update failed: this file should not extend itself",
-	"!parentFile": "Update failed: the extended file no longer exists",
-	extendsIgnoredFile: "Update failed: the extended file is ignored",
-	hasCyclicHierarchy: "Update failed: there is a cyclic hierarchy",
-};
-
-function logError(errorToBeSolved: NonNullable<ErrorToBeSolved>) {
-	new Notice(errorNotice[errorToBeSolved]);
-}
-
 export default class OOTPlugin extends Plugin {
+	readonly ERROR_NOTICE = {
+		"!isLink": "Update failed: the extended file should be a link",
+		extendsItself: "Update failed: this file should not extend itself",
+		"!parentFile": "Update failed: the extended file no longer exists",
+		extendsIgnoredFile: "Update failed: the extended file is ignored",
+		hasCyclicHierarchy: "Update failed: there is a cyclic hierarchy",
+	};
+
 	settings!: PluginSettings;
 	filesCacheService!: FilesCacheService;
+	inheritanceErrorsView!: InheritanceErrorsView;
 
 	fileCreationHandler!: FileCreationHandler;
 	fileRenameHandler!: FileRenameHandler;
 	fileChangeHandler!: FileChangeHandler;
 	fileDeletionHandler!: FileDeletionHandler;
+
+	async createView() {
+		let leaf: WorkspaceLeaf | undefined | null;
+		const leaves = this.app.workspace.getLeavesOfType(
+			INHERITANCE_ERROR_VIEW_TYPE,
+		);
+
+		const leafAlreadyExists = leaves.length > 0;
+		if (leafAlreadyExists) {
+			const alreadyExistentLeaf = leaves[0];
+			leaf = alreadyExistentLeaf;
+		} else {
+			leaf = this.app.workspace.getLeftLeaf(false);
+			await leaf?.setViewState({
+				type: INHERITANCE_ERROR_VIEW_TYPE,
+				active: true,
+			});
+		}
+
+		return leaf;
+	}
+
+	async activateView() {
+		const leaf = await this.createView();
+		if (!leaf) return;
+
+		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	logError(errorToBeSolved: NonNullable<ErrorToBeSolved>) {
+		new Notice(this.ERROR_NOTICE[errorToBeSolved]);
+	}
 
 	async onload() {
 		await this.loadSettings();
@@ -54,6 +93,19 @@ export default class OOTPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(async () => {
 			await this.filesCacheService.initialize();
+
+			await this.createView();
+		});
+
+		this.registerView(INHERITANCE_ERROR_VIEW_TYPE, (leaf) => {
+			this.inheritanceErrorsView = new InheritanceErrorsView(leaf, this);
+			return this.inheritanceErrorsView;
+		});
+
+		this.addCommand({
+			id: "show-inheritance-errors",
+			name: "Show inheritance errors",
+			callback: () => this.activateView(),
 		});
 
 		this.registerEvent(
@@ -78,7 +130,7 @@ export default class OOTPlugin extends Plugin {
 				this.addInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
 					inheritanceMetadataPropertyValue,
 				);
-				logError(errorToBeSolved);
+				this.logError(errorToBeSolved);
 			}),
 		);
 
@@ -114,6 +166,10 @@ export default class OOTPlugin extends Plugin {
 		};
 	}
 
+	unload() {
+		delete window.oot;
+	}
+
 	removeInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
 		inheritanceMetadataPropertyValue: Element,
 	) {
@@ -145,10 +201,6 @@ export default class OOTPlugin extends Plugin {
 				);
 			})
 			?.querySelector(".metadata-property-value");
-	}
-
-	unload() {
-		delete window.oot;
 	}
 
 	isObjectFile(file: TFile) {
@@ -225,7 +277,7 @@ export default class OOTPlugin extends Plugin {
 					parentFrontmatterLink.startsWith("[[") &&
 					parentFrontmatterLink.endsWith("]]");
 				if (!isLink) {
-					if (isActiveFile()) logError("!isLink");
+					if (isActiveFile()) this.logError("!isLink");
 
 					await onInvalid("!isLink");
 					return;
@@ -238,7 +290,7 @@ export default class OOTPlugin extends Plugin {
 
 				const extendsItself = parentLinkPath === file.basename;
 				if (extendsItself) {
-					if (isActiveFile()) logError("extendsItself");
+					if (isActiveFile()) this.logError("extendsItself");
 
 					await onInvalid("extendsItself");
 					return;
@@ -249,7 +301,7 @@ export default class OOTPlugin extends Plugin {
 					file.path,
 				);
 				if (!parentFile) {
-					if (isActiveFile()) logError("!parentFile");
+					if (isActiveFile()) this.logError("!parentFile");
 
 					await onInvalid("!parentFile");
 					return;
@@ -257,7 +309,7 @@ export default class OOTPlugin extends Plugin {
 
 				const extendsIgnoredFile = this.shouldFileBeIgnored(parentFile);
 				if (extendsIgnoredFile) {
-					if (isActiveFile()) logError("extendsIgnoredFile");
+					if (isActiveFile()) this.logError("extendsIgnoredFile");
 
 					await onInvalid("extendsIgnoredFile");
 					return;
@@ -269,7 +321,7 @@ export default class OOTPlugin extends Plugin {
 
 				const hasCyclicHierarchy = parentFileData.hierarchy.includes(file.path);
 				if (hasCyclicHierarchy) {
-					if (isActiveFile()) logError("hasCyclicHierarchy");
+					if (isActiveFile()) this.logError("hasCyclicHierarchy");
 
 					await onInvalid("hasCyclicHierarchy");
 					return;
@@ -382,6 +434,7 @@ export default class OOTPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		this.inheritanceErrorsView.render();
 	}
 
 	override async loadData() {

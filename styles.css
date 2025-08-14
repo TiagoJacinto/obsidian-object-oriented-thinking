@@ -18,3 +18,17 @@ If your plugin does not need CSS, delete this file.
 .invalid-parent-extension {
 	text-decoration: underline wavy red;
 }
+
+.inheritance-errors-container {
+	padding-inline: 4%;
+}
+
+.inheritance-errors-list {
+	padding-inline: 2px;
+}
+
+.inheritance-error-item {
+	display: flex;
+	align-items: center;
+	gap: 5%;
+}

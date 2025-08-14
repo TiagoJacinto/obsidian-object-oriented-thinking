@@ -62,10 +62,6 @@ export class FilesCacheService extends Component {
 				await this.plugin.saveSettings();
 			},
 		});
-
-		// check if there are any files that have errors to be solved
-		// notify the user that there are errors to be solved
-		// and that he can check all the files with errors in the "Object Oriented Thinking Errors List"
 	}
 
 	getFileErrorToBeSolved(path: string) {
