@@ -14,14 +14,20 @@ export class FilesCacheService extends Component {
 	}
 
 	async synchronize() {
-		const existingFiles = this.plugin.app.vault.getMarkdownFiles();
+		const existingFiles = this.plugin.app.vault.getMarkdownFiles().reduce(
+			(obj, file) => {
+				obj[file.path] = file;
+				return obj;
+			},
+			{} as Record<string, TFile>,
+		);
 
-		for (const existingFile of existingFiles) {
+		for (const existingFile of Object.values(existingFiles)) {
 			await this.plugin.fileCreationHandler.execute({ file: existingFile });
 		}
 
 		for (const filePath of Object.keys(this.plugin.settings.files)) {
-			const file = existingFiles.find((f) => f.path === filePath);
+			const file = existingFiles[filePath];
 			if (!file || this.shouldFileDataBeDeleted(file)) {
 				await this.plugin.fileDeletionHandler.impl(filePath);
 			}
