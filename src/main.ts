@@ -23,7 +23,7 @@ import {
 import type { Frontmatter, ObjectFile } from "./types";
 import {
 	INHERITANCE_ERROR_VIEW_TYPE,
-	InheritanceErrorsView,
+	 InheritanceErrorsView,
 } from "./views/InheritanceErrorsView";
 
 const isExcalidrawFile = (file: TFile) =>
@@ -42,7 +42,7 @@ export default class OOTPlugin extends Plugin {
 
 	settings!: PluginSettings;
 	filesCacheService!: FilesCacheService;
-	inheritanceErrorsView!: InheritanceErrorsView;
+	inheritanceErrorsView?: InheritanceErrorsView;
 
 	fileCreationHandler!: FileCreationHandler;
 	fileRenameHandler!: FileRenameHandler;
@@ -166,7 +166,7 @@ export default class OOTPlugin extends Plugin {
 		};
 	}
 
-	unload() {
+	onunload() {
 		delete window.oot;
 	}
 
@@ -434,7 +434,7 @@ export default class OOTPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		this.inheritanceErrorsView.render();
+		this.inheritanceErrorsView?.render();
 	}
 
 	override async loadData() {
