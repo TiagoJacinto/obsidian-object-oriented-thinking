@@ -62,6 +62,12 @@ export class FilesCacheService extends Component {
 	async initializeFileData(file: TFile) {
 		await this.plugin.processObjectFileHierarchy({
 			file,
+			onSuccess: async () => {
+				this.plugin.settings.files[file.path] = {
+					hierarchy: [file.path],
+					extendedBy: [],
+				};
+			},
 			onInvalid: async (errorToBeSolved) => {
 				this.plugin.settings.files[file.path] = {
 					hierarchy: [file.path],
