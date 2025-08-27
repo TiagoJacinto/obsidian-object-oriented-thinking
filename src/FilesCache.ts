@@ -95,7 +95,8 @@ export class FilesCacheService extends Component {
 
 	private pathOrFileToFile(pathOrFile: string | TFile) {
 		return typeof pathOrFile === "string"
-			? (this.plugin.app.vault.getFileByPath(pathOrFile) ?? raise(1))
+			? (this.plugin.app.vault.getFileByPath(pathOrFile) ??
+					raise(`File ${pathOrFile} not found`))
 			: pathOrFile;
 	}
 
