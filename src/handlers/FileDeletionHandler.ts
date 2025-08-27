@@ -1,18 +1,25 @@
-import { type TAbstractFile, type TFile } from 'obsidian';
-import { Handler } from 'src/Handler';
+import { type TFile } from "obsidian";
+import { Handler } from "src/Handler";
 
 export class FileDeletionHandler extends Handler {
 	async impl(path: string) {
-		const fileData = this.plugin.filesCacheService.getInitializedFileData(path);
+		const fileData =
+			await this.plugin.filesCacheService.getOrInitializeFileData(path);
 
 		const dependentFiles = this.plugin.toExistingFiles(fileData.extendedBy);
 
 		await this.sliceHierarchyAtRightOfPath(dependentFiles, path);
 
-		dependentFiles.forEach((f) => this.plugin.filesCacheService.setFileExtends(f.path, null));
+		dependentFiles.forEach((f) =>
+			this.plugin.filesCacheService.setFileExtends(f.path, null),
+		);
 
 		const parentPath = fileData.extends;
-		if (parentPath) this.plugin.filesCacheService.removeFileExtendedBy(parentPath, path);
+		if (parentPath)
+			await this.plugin.filesCacheService.removeFileExtendedBy(
+				parentPath,
+				path,
+			);
 
 		delete this.plugin.settings.files[path];
 
@@ -23,14 +30,25 @@ export class FileDeletionHandler extends Handler {
 		await this.impl(file.path);
 	}
 
-	private async sliceHierarchyAtRightOfPath(dependentFiles: TAbstractFile[], path: string) {
+	private async sliceHierarchyAtRightOfPath(
+		dependentFiles: TFile[],
+		path: string,
+	) {
 		for (const dependentFile of dependentFiles) {
-			const fileData = this.plugin.filesCacheService.getInitializedFileData(dependentFile.path);
+			const fileData =
+				await this.plugin.filesCacheService.getOrInitializeFileData(
+					dependentFile.path,
+				);
 
 			// remove all at the right of path
-			const newHierarchy = fileData.hierarchy.slice(fileData.hierarchy.indexOf(path) + 1);
+			const newHierarchy = fileData.hierarchy.slice(
+				fileData.hierarchy.indexOf(path) + 1,
+			);
 
-			this.plugin.filesCacheService.setFileHierarchy(dependentFile.path, newHierarchy);
+			await this.plugin.filesCacheService.setFileHierarchy(
+				dependentFile.path,
+				newHierarchy,
+			);
 
 			await this.sliceHierarchyAtRightOfPath(
 				this.plugin.toExistingFiles(fileData.extendedBy),

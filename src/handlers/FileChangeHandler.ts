@@ -5,9 +5,8 @@ import { parseDate } from "src/utils";
 
 export class FileChangeHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
-		const fileData = this.plugin.filesCacheService.getInitializedFileData(
-			file.path,
-		);
+		const fileData =
+			await this.plugin.filesCacheService.getOrInitializeFileData(file);
 
 		if (!this.shouldUpdateFile(file.stat.mtime, fileData.updatedAt)) return;
 

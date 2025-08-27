@@ -1,8 +1,12 @@
 import * as time from "date-fns";
-import { Component, type TAbstractFile, type TFile } from "obsidian";
+import { Component, type TFile } from "obsidian";
 import type OOTPlugin from "./main";
 import { type ErrorToBeSolved } from "./Settings";
 import { formatDate, parseDate } from "./utils";
+
+function raise(thrown: unknown): never {
+	throw thrown;
+}
 
 export class FilesCacheService extends Component {
 	constructor(private readonly plugin: OOTPlugin) {
@@ -28,16 +32,16 @@ export class FilesCacheService extends Component {
 
 		for (const filePath of Object.keys(this.plugin.settings.files)) {
 			const file = existingFiles[filePath];
-			if (!file || this.shouldFileDataBeDeleted(file)) {
+			if (!file || (await this.shouldFileDataBeDeleted(file))) {
 				await this.plugin.fileDeletionHandler.impl(filePath);
 			}
 		}
 	}
 
-	shouldFileDataBeDeleted({ path }: TFile) {
-		if (!this.fileDataExists(path)) return false;
+	async shouldFileDataBeDeleted(file: TFile) {
+		if (!this.fileDataExists(file.path)) return false;
 
-		const { softExcludedAt } = this.getInitializedFileData(path);
+		const { softExcludedAt } = await this.getOrInitializeFileData(file);
 		if (!softExcludedAt) return false;
 
 		const fileSoftExcludedAt = parseDate(softExcludedAt);
@@ -70,28 +74,42 @@ export class FilesCacheService extends Component {
 		});
 	}
 
-	getFileErrorToBeSolved(path: string) {
-		const fileData = this.getInitializedFileData(path);
+	async getFileErrorToBeSolved(path: string) {
+		const fileData = await this.getOrInitializeFileData(path);
 		return fileData.errorToBeSolved;
 	}
 
-	getInitializedFileData(path: string) {
-		const result = this.plugin.settings.files[path];
-		if (!result) throw new Error(`File data of ${path} not found`);
-		return result;
+	async getOrInitializeFileData(pathOrFile: string | TFile) {
+		const file = this.pathOrFileToFile(pathOrFile);
+
+		const result = this.plugin.settings.files[file.path];
+		if (!result) await this.initializeFileData(file);
+		return result!;
 	}
 
-	setFileUpdatedAt({ path }: TAbstractFile) {
-		const fileData = this.getInitializedFileData(path);
+	getInitializedFileData(pathOrFile: string | TFile) {
+		const file = this.pathOrFileToFile(pathOrFile);
 
-		this.plugin.settings.files[path] = {
+		return this.plugin.settings.files[file.path];
+	}
+
+	private pathOrFileToFile(pathOrFile: string | TFile) {
+		return typeof pathOrFile === "string"
+			? (this.plugin.app.vault.getFileByPath(pathOrFile) ?? raise(1))
+			: pathOrFile;
+	}
+
+	async setFileUpdatedAt(file: TFile) {
+		const fileData = await this.getOrInitializeFileData(file);
+
+		this.plugin.settings.files[file.path] = {
 			...fileData,
 			updatedAt: formatDate(new Date()),
 		};
 	}
 
-	setFileErrorToBeSolved(path: string, errorToBeSolved: ErrorToBeSolved) {
-		const fileData = this.getInitializedFileData(path);
+	async setFileErrorToBeSolved(path: string, errorToBeSolved: ErrorToBeSolved) {
+		const fileData = await this.getOrInitializeFileData(path);
 
 		this.plugin.settings.files[path] = {
 			...fileData,
@@ -99,15 +117,15 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	async removeFileErrorToBeSolved(file: TFile) {
-		if (!(file.path in this.plugin.settings.files))
-			throw new Error(`File data of ${file.path} not found`);
+	async removeFileErrorToBeSolved({ path }: TFile) {
+		if (!(path in this.plugin.settings.files))
+			throw new Error(`File data of ${path} not found`);
 
-		delete this.plugin.settings.files[file.path]!.errorToBeSolved;
+		delete this.plugin.settings.files[path]!.errorToBeSolved;
 	}
 
-	includeFile(path: string) {
-		const fileData = this.getInitializedFileData(path);
+	async includeFile(path: string) {
+		const fileData = await this.getOrInitializeFileData(path);
 
 		this.plugin.settings.files[path] = {
 			...fileData,
@@ -115,8 +133,8 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	setFileSoftExcludedAt(path: string) {
-		const fileData = this.getInitializedFileData(path);
+	async setFileSoftExcludedAt(path: string) {
+		const fileData = await this.getOrInitializeFileData(path);
 
 		this.plugin.settings.files[path] = {
 			...fileData,
@@ -124,8 +142,8 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	setFileExtends(path: string, extendsFile: TFile | null) {
-		const fileData = this.getInitializedFileData(path);
+	async setFileExtends(path: string, extendsFile: TFile | null) {
+		const fileData = await this.getOrInitializeFileData(path);
 
 		this.plugin.settings.files[path] = {
 			...fileData,
@@ -133,8 +151,8 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	updateFileExtendedBy(path: string, oldPath: string, newPath: string) {
-		const fileData = this.getInitializedFileData(path);
+	async updateFileExtendedBy(path: string, oldPath: string, newPath: string) {
+		const fileData = await this.getOrInitializeFileData(path);
 
 		this.plugin.settings.files[path] = {
 			...fileData,
@@ -142,8 +160,8 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	addFileExtendedBy({ path }: TAbstractFile, extendedBy: TFile) {
-		const fileData = this.getInitializedFileData(path);
+	async addFileExtendedBy({ path }: TFile, extendedBy: TFile) {
+		const fileData = await this.getOrInitializeFileData(path);
 
 		const exists = fileData.extendedBy.includes(extendedBy.path);
 		if (exists) return;
@@ -154,24 +172,24 @@ export class FilesCacheService extends Component {
 		};
 	}
 
-	removeFileExtendedBy(path: string, extendedByPath: string) {
-		const fileData = this.getInitializedFileData(path);
+	async removeFileExtendedBy(path: string, extendedByPath: string) {
+		const fileData = await this.getOrInitializeFileData(path);
 		this.plugin.settings.files[path] = {
 			...fileData,
 			extendedBy: fileData.extendedBy.filter((f) => f !== extendedByPath),
 		};
 	}
 
-	updateHierarchyPath(path: string, oldPath: string, newPath: string) {
-		const fileData = this.getInitializedFileData(path);
+	async updateHierarchyPath(path: string, oldPath: string, newPath: string) {
+		const fileData = await this.getOrInitializeFileData(path);
 		this.plugin.settings.files[path] = {
 			...fileData,
 			hierarchy: fileData.hierarchy.map((p) => (p === oldPath ? newPath : p)),
 		};
 	}
 
-	setFileHierarchy(path: string, hierarchy: string[]) {
-		const fileData = this.getInitializedFileData(path);
+	async setFileHierarchy(path: string, hierarchy: string[]) {
+		const fileData = await this.getOrInitializeFileData(path);
 		this.plugin.settings.files[path] = {
 			...fileData,
 			hierarchy,

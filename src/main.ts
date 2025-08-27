@@ -23,7 +23,7 @@ import {
 import type { Frontmatter, ObjectFile } from "./types";
 import {
 	INHERITANCE_ERROR_VIEW_TYPE,
-	 InheritanceErrorsView,
+	InheritanceErrorsView,
 } from "./views/InheritanceErrorsView";
 
 const isExcalidrawFile = (file: TFile) =>
@@ -109,7 +109,7 @@ export default class OOTPlugin extends Plugin {
 		});
 
 		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", () => {
+			this.app.workspace.on("active-leaf-change", async () => {
 				const file = this.app.workspace.getActiveFile();
 				if (!file) return;
 
@@ -117,9 +117,8 @@ export default class OOTPlugin extends Plugin {
 					this.getInheritanceMetadataPropertyValue();
 				if (!inheritanceMetadataPropertyValue) return;
 
-				const errorToBeSolved = this.filesCacheService.getFileErrorToBeSolved(
-					file.path,
-				);
+				const errorToBeSolved =
+					await this.filesCacheService.getFileErrorToBeSolved(file.path);
 				if (!errorToBeSolved) {
 					this.removeInvalidParentExtensionClassToInheritanceMetadataPropertyValue(
 						inheritanceMetadataPropertyValue,
@@ -214,9 +213,20 @@ export default class OOTPlugin extends Plugin {
 				const parentFile = z
 					.object({ path: z.string() })
 					.parse(unparsedParentFile);
-				const childFileData = this.filesCacheService.getInitializedFileData(
-					file.path,
-				);
+
+				void this.filesCacheService.initializeFileData(file);
+
+				const childFileData =
+					this.filesCacheService.getInitializedFileData(file);
+
+				if (!childFileData) {
+					// eslint-disable-next-line sonarjs/void-use
+					void this.app.workspace
+						.getActiveViewOfType(MarkdownView)
+						?.leaf.rebuildView();
+					throw new Error(`File data of ${file.path} not found`);
+				}
+
 				const childHierarchy = childFileData.hierarchy;
 
 				return (
@@ -257,7 +267,7 @@ export default class OOTPlugin extends Plugin {
 	}: {
 		file: TFile;
 		onInvalid: (errorToBeSolved?: ErrorToBeSolved) => Promise<void>;
-		onSuccess?: (parentFile: TFile) => void;
+		onSuccess?: (parentFile: TFile) => Promise<void>;
 	}) {
 		const isActiveFile = () => this.app.workspace.getActiveFile() === file;
 
@@ -315,9 +325,8 @@ export default class OOTPlugin extends Plugin {
 					return;
 				}
 
-				const parentFileData = this.filesCacheService.getInitializedFileData(
-					parentFile.path,
-				);
+				const parentFileData =
+					await this.filesCacheService.getOrInitializeFileData(parentFile.path);
 
 				const hasCyclicHierarchy = parentFileData.hierarchy.includes(file.path);
 				if (hasCyclicHierarchy) {
@@ -327,11 +336,11 @@ export default class OOTPlugin extends Plugin {
 					return;
 				}
 
-				onSuccess?.(parentFile);
+				await onSuccess?.(parentFile);
 
-				this.filesCacheService.addFileExtendedBy(parentFile, file);
+				await this.filesCacheService.addFileExtendedBy(parentFile, file);
 				await this.addObjectPrefixToHierarchy(file, parentFileData.hierarchy);
-				this.filesCacheService.setFileExtends(file.path, parentFile);
+				await this.filesCacheService.setFileExtends(file.path, parentFile);
 				await this.filesCacheService.removeFileErrorToBeSolved(file);
 
 				await this.saveSettings();
@@ -339,22 +348,27 @@ export default class OOTPlugin extends Plugin {
 		);
 	}
 
-	updateObjectFileHierarchy(file: TFile) {
-		const fileData = this.filesCacheService.getInitializedFileData(file.path);
+	async updateObjectFileHierarchy(file: TFile) {
+		const fileData = await this.filesCacheService.getOrInitializeFileData(
+			file.path,
+		);
 
 		return this.processObjectFileHierarchy({
 			file,
 			onInvalid: async (errorToBeSolved) => {
-				this.filesCacheService.setFileHierarchy(file.path, [file.path]);
-				this.filesCacheService.setFileErrorToBeSolved(
+				await this.filesCacheService.setFileHierarchy(file.path, [file.path]);
+				await this.filesCacheService.setFileErrorToBeSolved(
 					file.path,
 					errorToBeSolved,
 				);
 
 				const parentPath = fileData.extends;
 				if (parentPath) {
-					this.filesCacheService.setFileExtends(file.path, null);
-					this.filesCacheService.removeFileExtendedBy(parentPath, file.path);
+					await this.filesCacheService.setFileExtends(file.path, null);
+					await this.filesCacheService.removeFileExtendedBy(
+						parentPath,
+						file.path,
+					);
 				}
 				await this.saveSettings();
 
@@ -366,7 +380,7 @@ export default class OOTPlugin extends Plugin {
 					inheritanceMetadataPropertyValue,
 				);
 			},
-			onSuccess: (parentFile) => {
+			onSuccess: async (parentFile) => {
 				const inheritanceMetadataPropertyValue =
 					this.getInheritanceMetadataPropertyValue();
 				if (!inheritanceMetadataPropertyValue) return;
@@ -380,7 +394,10 @@ export default class OOTPlugin extends Plugin {
 					const extendsHasChanged = oldParentPath !== parentFile.path;
 					if (!extendsHasChanged) return;
 
-					this.filesCacheService.removeFileExtendedBy(oldParentPath, file.path);
+					await this.filesCacheService.removeFileExtendedBy(
+						oldParentPath,
+						file.path,
+					);
 				}
 			},
 		});
@@ -390,11 +407,13 @@ export default class OOTPlugin extends Plugin {
 		file: TFile,
 		parentHierarchy: string[],
 	) {
-		const fileData = this.filesCacheService.getInitializedFileData(file.path);
+		const fileData = await this.filesCacheService.getOrInitializeFileData(
+			file.path,
+		);
 
 		const newHierarchy = [...parentHierarchy, file.path];
 
-		this.filesCacheService.setFileHierarchy(file.path, newHierarchy);
+		await this.filesCacheService.setFileHierarchy(file.path, newHierarchy);
 
 		const dependentFiles = fileData.extendedBy.map((filePath) =>
 			this.app.vault.getFileByPath(filePath),

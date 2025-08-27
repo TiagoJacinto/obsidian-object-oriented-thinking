@@ -1,6 +1,6 @@
-import { type TFile } from 'obsidian';
-import '@total-typescript/ts-reset';
-import { type ObjectFile } from 'src/types';
+import { type TFile } from "obsidian";
+import "@total-typescript/ts-reset";
+import { type ObjectFile } from "src/types";
 
 declare global {
 	declare const ExcalidrawAutomate:
@@ -17,7 +17,7 @@ declare global {
 	}
 }
 
-declare module 'obsidian' {
+declare module "obsidian" {
 	interface App {
 		dom: {
 			appContainerEl: HTMLElement;
@@ -26,5 +26,9 @@ declare module 'obsidian' {
 
 	interface TFile {
 		deleted: boolean;
+	}
+
+	interface WorkspaceLeaf {
+		rebuildView(): Promise<void>;
 	}
 }

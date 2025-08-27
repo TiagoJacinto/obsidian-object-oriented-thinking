@@ -16,13 +16,13 @@ extends: [[ParentNote]]
 
 ### 2. Query
 
-Using utility methods `(getObjectFileByPath(path).isDescendantOf(parentObjectFile))`
+Using utility methods: `getObjectFileByPath(path).isDescendantOf(parentObjectFile)`
 
 ## Methods
 
-### oot.getObjectFileByLink(link: `[[${string}]]`): TFile & {isDescendantOf: (parentFile: TFile) => boolean} | null
+#### oot.getObjectFileByLink(link: `[[${string}]]`): TFile & {isDescendantOf: (parentFile: TFile) => boolean} | null
 
-#### Examples
+##### Examples
 
 ```js
 const taskObjectFile = oot.getObjectFileByLink("[[Task]]")
@@ -34,9 +34,9 @@ dv.table(["File"], dv.pages().where(page => {
 }).map(p => [p.file.link]))
 ```
 
-### oot.getObjectFileByPath(path: string): TFile & {isDescendantOf: (parentFile: TFile) => boolean} | null
+#### oot.getObjectFileByPath(path: string): TFile & {isDescendantOf: (parentFile: TFile) => boolean} | null
 
-#### Examples
+##### Examples
 
 ```js
 const currentObjectFile = oot.getObjectFileByPath(dv.current().file.path);

@@ -202,7 +202,9 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 					for (const filePath of Object.keys(this.plugin.settings.files)) {
 						if (filePath.startsWith(newFolder))
-							this.plugin.filesCacheService.setFileSoftExcludedAt(filePath);
+							await this.plugin.filesCacheService.setFileSoftExcludedAt(
+								filePath,
+							);
 					}
 
 					setValue([...currentList, newFolder].filter(onlyUniqueArray));
@@ -223,7 +225,7 @@ export class OOTSettingsTab extends PluginSettingTab {
 
 					for (const file of filesToInclude) {
 						if (this.plugin.filesCacheService.fileDataExists(file.path)) {
-							this.plugin.filesCacheService.includeFile(file.path);
+							await this.plugin.filesCacheService.includeFile(file.path);
 							continue;
 						}
 

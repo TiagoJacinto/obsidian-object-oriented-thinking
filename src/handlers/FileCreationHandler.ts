@@ -5,15 +5,8 @@ import { parseDate } from "src/utils";
 
 export class FileCreationHandler extends Handler {
 	protected async executeImpl({ file }: { file: TFile }) {
-		if (!this.plugin.filesCacheService.fileDataExists(file.path)) {
-			await this.plugin.filesCacheService.initializeFileData(file);
-			await this.plugin.saveSettings();
-			return;
-		}
-
-		const fileData = this.plugin.filesCacheService.getInitializedFileData(
-			file.path,
-		);
+		const fileData =
+			await this.plugin.filesCacheService.getOrInitializeFileData(file);
 		const updatedAt = fileData.updatedAt;
 
 		if (
