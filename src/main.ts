@@ -214,12 +214,11 @@ export default class OOTPlugin extends Plugin {
 					.object({ path: z.string() })
 					.parse(unparsedParentFile);
 
-				void this.filesCacheService.initializeFileData(file);
-
 				const childFileData =
 					this.filesCacheService.getInitializedFileData(file);
 
 				if (!childFileData) {
+					void this.filesCacheService.initializeFileData(file);
 					// eslint-disable-next-line sonarjs/void-use
 					void this.app.workspace
 						.getActiveViewOfType(MarkdownView)
