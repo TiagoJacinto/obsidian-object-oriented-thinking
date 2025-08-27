@@ -84,7 +84,7 @@ export class FilesCacheService extends Component {
 
 		const result = this.plugin.settings.files[file.path];
 		if (!result) await this.initializeFileData(file);
-		return result!;
+		return this.plugin.settings.files[file.path]!;
 	}
 
 	getInitializedFileData(pathOrFile: string | TFile) {
